@@ -5,8 +5,8 @@
 // 4. Run pushAll() once to test
 // 5. Set trigger: pushAll → Mon & Thu 9:00 AM
 
-const BATCH_URL    = 'https://YOUR-VERCEL-URL.vercel.app/api/mongo-batch';
-const BATCH_SECRET = 'YOUR_BATCH_SECRET_HERE';
+const BATCH_URL    = 'https://sar-indonesia-sea-ops-dashboard.vercel.app/api/mongo-batch';
+const BATCH_SECRET = 'Harsh@2644';
 const SHEET_ID     = '1H610k9P24-3iUXlrl-RhqrH-7Iy5zYoJ4IjsuKapg84';
 
 // ── EXACT column indices from "Shipment Details" tab (0-based) ─────────────

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SAR Indonesia — Sea Ops Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<style>
+:root{
+  --navy-900:#0d1b2e;--navy-800:#132035;--navy-700:#1a2e4a;--navy-600:#1e3354;
+  --accent:#2a78d6;--coral:#d95a2a;--green:#1a8c60;--amber:#b86a10;--red:#c03030;
+  --text-primary:#e2e8f0;--text-secondary:#8ba3c7;--text-muted:#4a6a8a;
+  --border:rgba(255,255,255,.08);--topbar:52px;--sidebar:256px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a2a3a;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:var(--navy-900);display:flex;align-items:center;justify-content:center;z-index:1000}
+.login-card{background:var(--navy-800);border:1px solid var(--border);border-radius:16px;padding:40px;width:360px;text-align:center}
+.login-logo{font-size:32px;font-weight:800;color:#fff;letter-spacing:.05em;margin-bottom:6px}
+.login-sub{font-size:13px;color:var(--text-muted);margin-bottom:28px}
+.signin-btn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.signin-btn:hover{background:#1a5cb8}
+.login-note{font-size:11px;color:var(--text-muted);margin-top:16px}
+/* TOPBAR */
+.topbar{height:var(--topbar);background:var(--navy-900);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;z-index:10}
+.topbar-brand{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;letter-spacing:.04em}
+.topbar-brand span{color:var(--accent)}
+.topbar-divider{width:1px;height:24px;background:var(--border);flex-shrink:0}
+.topbar-chip{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--text-secondary);background:transparent;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.topbar-chip:hover{background:rgba(255,255,255,.06)}
+.topbar-chip.active{background:rgba(42,120,214,.18);color:#B5D4F4;border-color:#185FA5}
+.topbar-spacer{flex:1}
+.topbar-user{font-size:11px;color:var(--text-muted);white-space:nowrap}
+/* DIRECTION TOGGLE */
+.dir-toggle{display:flex;gap:4px;background:rgba(255,255,255,.06);border-radius:20px;padding:3px}
+.dir-btn{font-size:11px;font-weight:600;padding:4px 14px;border-radius:16px;border:none;cursor:pointer;background:transparent;color:var(--text-secondary);transition:all .15s}
+.dir-btn.active{background:var(--accent);color:#fff}
+/* CURRENCY TOGGLE */
+.curr-toggle{display:flex;gap:2px;background:rgba(255,255,255,.06);border-radius:20px;padding:3px}
+.curr-btn{font-size:11px;font-weight:600;padding:4px 10px;border-radius:16px;border:none;cursor:pointer;background:transparent;color:var(--text-secondary);transition:all .15s}
+.curr-btn.active{background:rgba(42,120,214,.18);color:#B5D4F4}
+/* LAYOUT */
+.body-row{display:flex;flex:1;overflow:hidden}
+.sidebar{width:var(--sidebar);background:var(--navy-900);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:width .2s,opacity .2s}
+.sidebar.collapsed{width:0;opacity:0;overflow:hidden}
+.sidebar-inner{min-width:var(--sidebar);display:flex;flex-direction:column;flex:1;overflow:hidden}
+.sidebar-brand-card{margin:10px 10px 6px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:10px}
+.sbc-icon{width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sbc-title{font-size:12px;font-weight:700;color:#fff}
+.sbc-sub{font-size:10px;color:var(--text-muted)}
+.sb-search{margin:6px 10px;position:relative}
+.sb-search input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:7px 10px 7px 30px;font-size:11px;color:var(--text-primary);outline:none}
+.sb-search input::placeholder{color:var(--text-muted)}
+.sb-search i{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px}
+.sidebar-nav-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:6px 0 12px;scrollbar-width:none}
+.sidebar-nav-scroll::-webkit-scrollbar{display:none}
+.nav-section-label{font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;padding:10px 14px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 14px;cursor:pointer;border-radius:8px;margin:1px 6px;transition:background .12s;color:var(--text-secondary);font-size:12px;font-weight:500;position:relative}
+.nav-item:hover{background:rgba(255,255,255,.06);color:var(--text-primary)}
+.nav-item.active{background:rgba(42,120,214,.18);color:#B5D4F4}
+.nav-item.active::before{content:'';position:absolute;left:0;top:20%;height:60%;width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item i{font-size:15px;flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:rgba(201,48,48,.2);color:#F87171}
+/* MAIN */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#f0f2f5}
+.page{flex:1;overflow-y:auto;padding:20px 24px;display:none}
+.page.active{display:block}
+/* FILTER BAR */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.filter-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:#7a96b8;text-transform:uppercase}
+.filter-select{font-size:11px;padding:5px 10px;border:1px solid #dde4ef;border-radius:8px;background:#fff;color:#1a2a3a;outline:none;cursor:pointer}
+.filter-btn{font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid #dde4ef;background:#fff;cursor:pointer;color:#4a6a8a;font-weight:500}
+.filter-btn:hover{background:#eef1f6}
+.filter-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi-card{background:#fff;border:1px solid #dde4ef;border-radius:12px;padding:14px 16px;border-top:3px solid transparent}
+.kpi-card.red{border-top-color:var(--red)}
+.kpi-card.green{border-top-color:var(--green)}
+.kpi-card.amber{border-top-color:var(--amber)}
+.kpi-card.blue{border-top-color:var(--accent)}
+.kpi-label{font-size:10px;font-weight:700;color:#7a96b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.kpi-val{font-size:26px;font-weight:700;line-height:1;margin-bottom:3px}
+.kpi-sub{font-size:11px;color:#9aabbd}
+/* CHARTS GRID */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chart-card{background:#fff;border:1px solid #dde4ef;border-radius:12px;padding:16px}
+.chart-card.full{grid-column:1/-1}
+.chart-title{font-size:11px;font-weight:700;color:#4a6a8a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.chart-sub{font-size:10px;color:#9aabbd;margin-bottom:12px}
+/* STACKED BARS */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bar-month{font-size:11px;font-weight:600;color:#4a6a8a;width:58px;flex-shrink:0;text-align:right}
+.bar-track{flex:1;height:24px;display:flex;border-radius:4px;overflow:hidden;background:#eef1f6}
+.bar-flagged{height:100%;background:#C5533C;display:flex;align-items:center;justify-content:center}
+.bar-clear{height:100%;background:#2F7D5C;display:flex;align-items:center;justify-content:center}
+.bar-label{font-size:10px;font-weight:700;color:#fff;white-space:nowrap;padding:0 4px}
+.bar-total{font-size:11px;font-weight:600;color:#4a6a8a;width:40px;flex-shrink:0;text-align:right}
+/* SUMMARY / HEATMAP */
+.heat-grid{display:grid;gap:3px}
+.heat-cell{height:28px;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:rgba(240,242,245,.8);display:flex;align-items:center;justify-content:center;z-index:500;display:none}
+.loading-overlay.show{display:flex}
+.spinner{width:36px;height:36px;border:3px solid #dde4ef;border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* LAST UPDATED */
+.last-updated{font-size:10px;color:var(--text-muted);text-align:center;padding:8px;flex-shrink:0}
+/* SIDEBAR REVEAL */
+.sidebar-reveal{position:fixed;left:0;top:50%;transform:translateY(-50%);width:16px;height:48px;background:var(--navy-900);border-radius:0 8px 8px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
+.sidebar-reveal i{font-size:12px;color:#B5D4F4}
+body.sidebar-hidden .sidebar-reveal{opacity:1;pointer-events:all}
+.sbc-collapse{margin-left:auto;cursor:pointer;padding:4px;color:var(--text-muted)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">SAR <span style="color:var(--accent)">ID</span></div>
+    <div class="login-sub">Indonesia Sea Operations Dashboard</div>
+    <button class="signin-btn" onclick="handleAuth()">
+      <i class="ti ti-brand-google"></i> Sign in with Google
+    </button>
+    <div class="login-note">Access restricted to authorised SAR personnel</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none">
+  <button onclick="toggleSidebar()" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px;padding:4px"><i class="ti ti-menu-2"></i></button>
+  <div class="topbar-brand">SAR <span>Indonesia</span> · Sea Ops</div>
+  <div class="topbar-divider"></div>
+
+  <!-- Direction toggle -->
+  <div class="dir-toggle">
+    <button class="dir-btn active" id="dir-exp" onclick="setDirection('Export')">Export</button>
+    <button class="dir-btn" id="dir-imp" onclick="setDirection('Import')">Import</button>
+  </div>
+
+  <div class="topbar-divider"></div>
+
+  <!-- Report view -->
+  <span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-muted);text-transform:uppercase">View</span>
+  <select class="topbar-chip" id="viewSelect" onchange="onViewChange()">
+    <option value="Monthly">Monthly</option>
+    <option value="Weekly">Weekly</option>
+    <option value="Quarterly">Quarterly</option>
+    <option value="Yearly">Yearly</option>
+  </select>
+
+  <span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-muted);text-transform:uppercase">From</span>
+  <select class="topbar-chip" id="fromSelect" onchange="applyFilters()"></select>
+  <span style="font-size:10px;color:var(--text-muted)">To</span>
+  <select class="topbar-chip" id="toSelect" onchange="applyFilters()"></select>
+
+  <div class="topbar-divider"></div>
+
+  <!-- Currency toggle -->
+  <div class="curr-toggle">
+    <button class="curr-btn active" id="curr-idr" onclick="setCurrency('IDR')">IDR</button>
+    <button class="curr-btn" id="curr-usd" onclick="setCurrency('USD')">USD</button>
+  </div>
+
+  <button class="topbar-chip" onclick="refreshData()" title="Refresh"><i class="ti ti-refresh"></i> Refresh</button>
+
+  <div class="topbar-spacer"></div>
+  <div class="topbar-user" id="topbarUser"></div>
+</div>
+
+<!-- BODY -->
+<div class="body-row" id="bodyRow" style="display:none">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <div class="sidebar-brand-card">
+        <div class="sbc-icon">🇮🇩</div>
+        <div><div class="sbc-title">PT RTW Indonesia</div><div class="sbc-sub">Sea Operations</div></div>
+        <div class="sbc-collapse" onclick="toggleSidebar()"><i class="ti ti-chevron-left"></i></div>
+      </div>
+      <div class="sb-search"><i class="ti ti-search"></i><input type="text" id="sbSearch" placeholder="Search pages..." oninput="sidebarSearch(this.value)"/></div>
+      <div class="sidebar-nav-scroll" id="sidebarNav">
+        <div class="nav-section-label">Main Metrics</div>
+        <div class="nav-item active" data-page="summary" onclick="navigate('summary')"><i class="ti ti-layout-dashboard"></i>Summary</div>
+        <div class="nav-item" data-page="open-jobs" onclick="navigate('open-jobs')"><i class="ti ti-briefcase"></i>Open Jobs<span class="nav-badge" id="badge-open-jobs">-</span></div>
+
+        <div class="nav-section-label">Revenue & Cost</div>
+        <div class="nav-item" data-page="revenue-not-billed" onclick="navigate('revenue-not-billed')"><i class="ti ti-receipt-off"></i>Revenue Not Billed<span class="nav-badge" id="badge-revenue-not-billed">-</span></div>
+        <div class="nav-item" data-page="cost-not-posted" onclick="navigate('cost-not-posted')"><i class="ti ti-coin-off"></i>Cost Not Posted<span class="nav-badge" id="badge-cost-not-posted">-</span></div>
+        <div class="nav-item" data-page="job-profit" onclick="navigate('job-profit')"><i class="ti ti-trending-down"></i>Job Profit &lt; 3%<span class="nav-badge" id="badge-job-profit">-</span></div>
+
+        <div class="nav-section-label">Milestone Pendency</div>
+        <div class="nav-item" data-page="hbl-release" onclick="navigate('hbl-release')"><i class="ti ti-file-off"></i>HBL Not Released<span class="nav-badge" id="badge-hbl-release">-</span></div>
+        <div class="nav-item" data-page="mbl-release" onclick="navigate('mbl-release')"><i class="ti ti-file-alert"></i>MBL Not Released<span class="nav-badge" id="badge-mbl-release">-</span></div>
+
+        <div class="nav-section-label">Documentation</div>
+        <div class="nav-item" data-page="invoice-not-raised" onclick="navigate('invoice-not-raised')"><i class="ti ti-file-invoice"></i>Invoice Not Raised<span class="nav-badge" id="badge-invoice-not-raised">-</span></div>
+      </div>
+      <div class="last-updated" id="lastUpdated">Last updated: —</div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR REVEAL -->
+  <div class="sidebar-reveal" onclick="toggleSidebar()"><i class="ti ti-chevron-right"></i></div>
+
+  <!-- MAIN -->
+  <div class="main-area">
+
+    <!-- SUMMARY PAGE -->
+    <div class="page active" id="page-summary">
+      <div id="summary-content">
+        <div style="padding:60px;text-align:center;color:#9aabbd">Loading data...</div>
+      </div>
+    </div>
+
+    <!-- OPEN JOBS -->
+    <div class="page" id="page-open-jobs">
+      <div id="open-jobs-content"></div>
+    </div>
+
+    <!-- REVENUE NOT BILLED -->
+    <div class="page" id="page-revenue-not-billed">
+      <div id="revenue-not-billed-content"></div>
+    </div>
+
+    <!-- COST NOT POSTED -->
+    <div class="page" id="page-cost-not-posted">
+      <div id="cost-not-posted-content"></div>
+    </div>
+
+    <!-- JOB PROFIT -->
+    <div class="page" id="page-job-profit">
+      <div id="job-profit-content"></div>
+    </div>
+
+    <!-- HBL RELEASE -->
+    <div class="page" id="page-hbl-release">
+      <div id="hbl-release-content"></div>
+    </div>
+
+    <!-- MBL RELEASE -->
+    <div class="page" id="page-mbl-release">
+      <div id="mbl-release-content"></div>
+    </div>
+
+    <!-- INVOICE NOT RAISED -->
+    <div class="page" id="page-invoice-not-raised">
+      <div id="invoice-not-raised-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = '71401290862-it2v6ru4et49diahsv4j63h07pm68thr.apps.googleusercontent.com';
+const BATCH_API  = '/api/mongo-batch';
+const IDR_TO_USD = 1 / 16500;
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let allRecords = [];
+let currentPage      = 'summary';
+let currentDirection = 'Export';
+let currentCurrency  = 'IDR';
+let currentView      = 'Monthly';
+let currentUser      = null;
+let sidebarOpen      = true;
+
+// ── AUTH ───────────────────────────────────────────────────────────────────
+function handleAuth() {
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: onGoogleToken,
+    auto_select: false,
+  });
+  google.accounts.id.prompt();
+}
+
+function onGoogleToken(resp) {
+  if (!resp.credential) return;
+  const payload = JSON.parse(atob(resp.credential.split('.')[1]));
+  const email = payload.email || '';
+  const allowed = ['@rtwlogistics.net','@sarlogisolutions.com','@sartransport.com'];
+  if (!allowed.some(d => email.endsWith(d))) {
+    alert('Access denied. Use your SAR work email.');
+    return;
+  }
+  currentUser = { name: payload.name, email };
+  sessionStorage.setItem('id_ops_user', JSON.stringify(currentUser));
+  showDashboard();
+}
+
+function checkSession() {
+  const saved = sessionStorage.getItem('id_ops_user');
+  if (saved) { currentUser = JSON.parse(saved); showDashboard(); }
+}
+
+function showDashboard() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('bodyRow').style.display = 'flex';
+  document.getElementById('topbarUser').textContent = currentUser.name || currentUser.email;
+  buildDateSelectors();
+  refreshData();
+}
+
+// ── SIDEBAR ────────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+  document.body.classList.toggle('sidebar-hidden', !sidebarOpen);
+}
+
+function sidebarSearch(q) {
+  const items = document.querySelectorAll('.nav-item');
+  items.forEach(item => {
+    const text = item.textContent.toLowerCase();
+    item.style.display = text.includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + page);
+  const navEl  = document.querySelector(`[data-page="${page}"]`);
+  if (pageEl) pageEl.classList.add('active');
+  if (navEl)  navEl.classList.add('active');
+  renderCurrentPage();
+}
+
+// ── DIRECTION & CURRENCY ───────────────────────────────────────────────────
+function setDirection(dir) {
+  currentDirection = dir;
+  document.getElementById('dir-exp').classList.toggle('active', dir === 'Export');
+  document.getElementById('dir-imp').classList.toggle('active', dir === 'Import');
+  renderAllPages();
+}
+
+function setCurrency(curr) {
+  currentCurrency = curr;
+  document.getElementById('curr-idr').classList.toggle('active', curr === 'IDR');
+  document.getElementById('curr-usd').classList.toggle('active', curr === 'USD');
+  renderCurrentPage();
+}
+
+function fmtCurrency(val) {
+  const v = currentCurrency === 'USD' ? val * IDR_TO_USD : val;
+  if (currentCurrency === 'USD') return '$' + v.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0});
+  return 'IDR ' + Math.round(v).toLocaleString('id-ID');
+}
+
+// ── DATE SELECTORS ─────────────────────────────────────────────────────────
+function buildDateSelectors() {
+  const from = document.getElementById('fromSelect');
+  const to   = document.getElementById('toSelect');
+  const now  = new Date();
+  const months = [];
+  let d = new Date(2024, 0, 1);
+  while (d <= now) {
+    months.push({ label: d.toLocaleString('en',{month:'short',year:'2-digit'}), value: d.toISOString().slice(0,7) });
+    d = new Date(d.getFullYear(), d.getMonth()+1, 1);
+  }
+  from.innerHTML = to.innerHTML = months.map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+  // Default: last 6 months
+  from.value = months[Math.max(0, months.length-6)].value;
+  to.value   = months[months.length-1].value;
+}
+
+function onViewChange() {
+  currentView = document.getElementById('viewSelect').value;
+  applyFilters();
+}
+
+function applyFilters() { renderAllPages(); }
+
+function getDateRange() {
+  const f = document.getElementById('fromSelect')?.value || '2024-01';
+  const t = document.getElementById('toSelect')?.value   || new Date().toISOString().slice(0,7);
+  return { from: new Date(f + '-01'), to: new Date(t + '-01') };
+}
+
+// ── DATA LOADING ───────────────────────────────────────────────────────────
+async function refreshData() {
+  showLoading(true);
+  try {
+    const resp = await fetch(BATCH_API);
+    const data = await resp.json();
+    allRecords = data.records || [];
+    const builtAt = data.builtAt ? new Date(data.builtAt).toLocaleString('en-GB') : '—';
+    document.getElementById('lastUpdated').textContent = 'Last updated: ' + builtAt;
+    renderAllPages();
+  } catch(e) {
+    console.error(e);
+    document.getElementById('summary-content').innerHTML = '<div style="padding:40px;text-align:center;color:#c03030">Failed to load data. Please refresh.</div>';
+  } finally {
+    showLoading(false);
+  }
+}
+
+function showLoading(show) {
+  document.getElementById('loadingOverlay').classList.toggle('show', show);
+}
+
+// ── FILTER RECORDS ─────────────────────────────────────────────────────────
+function getFilteredRecords() {
+  const { from, to } = getDateRange();
+  const toEnd = new Date(to.getFullYear(), to.getMonth()+1, 0); // end of month
+  return allRecords.filter(r => {
+    if (r.direction !== currentDirection) return false;
+    const etd = r.etdDate ? new Date(r.etdDate) : null;
+    if (!etd) return false;
+    return etd >= from && etd <= toEnd;
+  });
+}
+
+// Get month-buckets for chart
+function getMonthBuckets() {
+  const { from, to } = getDateRange();
+  const buckets = [];
+  let d = new Date(from.getFullYear(), from.getMonth(), 1);
+  const end = new Date(to.getFullYear(), to.getMonth()+1, 0);
+  while (d <= end) {
+    buckets.push({ key: d.toISOString().slice(0,7), label: d.toLocaleString('en',{month:'short',year:'2-digit'}) });
+    d = new Date(d.getFullYear(), d.getMonth()+1, 1);
+  }
+  return buckets;
+}
+
+// ── METRICS DEFINITIONS ────────────────────────────────────────────────────
+const METRICS = [
+  {
+    id: 'open-jobs',
+    title: 'Open Jobs',
+    desc: 'Jobs not yet closed or completed',
+    icon: 'ti-briefcase',
+    flag: r => !['CMP','CLS'].includes(r.jobStatus),
+  },
+  {
+    id: 'revenue-not-billed',
+    title: 'Revenue Not Billed within 3 Days of SOB',
+    desc: 'Recognized revenue = 0 more than 3 days after SOB',
+    icon: 'ti-receipt-off',
+    flag: r => {
+      const sob = r.etdDate ? new Date(r.etdDate) : null;
+      if (!sob) return false;
+      const daysSob = (new Date() - sob) / 86400000;
+      return daysSob > 3 && (!r.recognizedRevenue || r.recognizedRevenue === 0);
+    },
+  },
+  {
+    id: 'cost-not-posted',
+    title: 'Cost Not Posted within 7 Days of SOB',
+    desc: 'Recognized cost = 0 more than 7 days after SOB',
+    icon: 'ti-coin-off',
+    flag: r => {
+      const sob = r.etdDate ? new Date(r.etdDate) : null;
+      if (!sob) return false;
+      const daysSob = (new Date() - sob) / 86400000;
+      return daysSob > 7 && (!r.recognizedCost || r.recognizedCost === 0);
+    },
+  },
+  {
+    id: 'job-profit',
+    title: 'Job Profit < 3%',
+    desc: 'Jobs where profit margin is below 3%',
+    icon: 'ti-trending-down',
+    flag: r => {
+      const rev = r.recognizedRevenue || 0;
+      const profit = r.jobProfit || 0;
+      if (rev === 0) return false;
+      return (profit / rev) < 0.03;
+    },
+  },
+  {
+    id: 'hbl-release',
+    title: 'HBL Not Released > 7 Days of SOB',
+    desc: 'HBL not released more than 7 days after SOB',
+    icon: 'ti-file-off',
+    flag: r => {
+      const sob = r.etdDate ? new Date(r.etdDate) : null;
+      if (!sob) return false;
+      const daysSob = (new Date() - sob) / 86400000;
+      return daysSob > 7 && !r.hblReleasedDate;
+    },
+  },
+  {
+    id: 'mbl-release',
+    title: 'MBL Not Released > 7 Days of SOB',
+    desc: 'MBL not released more than 7 days after SOB',
+    icon: 'ti-file-alert',
+    flag: r => {
+      const sob = r.etdDate ? new Date(r.etdDate) : null;
+      if (!sob) return false;
+      const daysSob = (new Date() - sob) / 86400000;
+      return daysSob > 7 && !r.mblReleasedDate;
+    },
+  },
+  {
+    id: 'invoice-not-raised',
+    title: 'Invoice Not Raised within 3 Days of SOB',
+    desc: 'Invoice not raised within 3 days of SOB',
+    icon: 'ti-file-invoice',
+    flag: r => {
+      const sob = r.etdDate ? new Date(r.etdDate) : null;
+      if (!sob) return false;
+      const daysSob = (new Date() - sob) / 86400000;
+      return daysSob > 3 && !r.invoiceDate;
+    },
+  },
+];
+
+// ── RENDER ALL ─────────────────────────────────────────────────────────────
+function renderAllPages() {
+  updateBadges();
+  renderCurrentPage();
+}
+
+function renderCurrentPage() {
+  if (currentPage === 'summary') renderSummary();
+  else renderMetricPage(currentPage);
+}
+
+// ── BADGES ─────────────────────────────────────────────────────────────────
+function updateBadges() {
+  const filtered = getFilteredRecords();
+  METRICS.forEach(m => {
+    const el = document.getElementById('badge-' + m.id);
+    if (!el) return;
+    const count = filtered.filter(m.flag).length;
+    el.textContent = count > 999 ? (count/1000).toFixed(1)+'k' : count;
+    el.style.display = count > 0 ? '' : 'none';
+  });
+}
+
+// ── SUMMARY PAGE ───────────────────────────────────────────────────────────
+function renderSummary() {
+  const filtered = getFilteredRecords();
+  const total    = filtered.length;
+  const buckets  = getMonthBuckets();
+
+  const flagCol  = p => p >= 50 ? '#c03030' : p >= 25 ? '#b86a10' : '#1a8c60';
+  const heatBg   = p => p >= 70 ? '#fde0e0' : p >= 50 ? '#fbd0c0' : p >= 30 ? '#fce8c0' : p >= 15 ? '#c8f0dc' : '#a8e8c8';
+  const heatTx   = p => p >= 70 ? '#7a1010' : p >= 50 ? '#8a2010' : p >= 30 ? '#7a4000' : p >= 15 ? '#0a4828' : '#084020';
+
+  // Compute stats per metric
+  const metricStats = METRICS.map(m => {
+    const flagged    = filtered.filter(m.flag).length;
+    const pct        = total > 0 ? +((flagged/total)*100).toFixed(1) : 0;
+    const byMonth    = {};
+    buckets.forEach(b => {
+      const recs   = filtered.filter(r => (r.etdDate||'').slice(0,7) === b.key);
+      const f      = recs.filter(m.flag).length;
+      byMonth[b.key] = { total: recs.length, flagged: f };
+    });
+    return { ...m, flagged, pct, byMonth };
+  });
+
+  const redZones  = metricStats.filter(s => s.pct >= 50).length;
+  const avgHealth = metricStats.length ? (100 - metricStats.reduce((a,s)=>a+s.pct,0)/metricStats.length).toFixed(1) : '0.0';
+
+  // Active selected metric for detail panel
+  const activeIdx = window._summaryActiveIdx ?? 0;
+  const active    = metricStats[activeIdx];
+  const maxBucket = Math.max(...buckets.map(b => active.byMonth[b.key]?.total || 0), 1);
+
+  const moRows = buckets.map(b => {
+    const bk  = active.byMonth[b.key] || { total: 0, flagged: 0 };
+    const cl  = bk.total - bk.flagged;
+    const fR  = bk.total > 0 ? (bk.flagged/bk.total)*100 : 0;
+    const cR  = bk.total > 0 ? (cl/bk.total)*100 : 0;
+    const bW  = (bk.total/maxBucket)*100;
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span style="font-size:11px;font-weight:600;color:#c4d4e8">${b.label}</span>
+        <span style="font-size:11px;color:#8ba3c7">Total: <strong style="color:#fff">${bk.total.toLocaleString()}</strong></span>
+      </div>
+      <div style="height:24px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);display:flex">
+        <div style="width:${fR}%;background:#C5533C;height:100%;display:flex;align-items:center;justify-content:center;min-width:${bk.flagged>0?3:0}px">
+          ${fR>10?`<span style="font-size:10px;font-weight:700;color:#fff">${bk.flagged}</span>`:''}
+        </div>
+        <div style="width:${cR}%;background:#2F7D5C;height:100%;display:flex;align-items:center;justify-content:center;min-width:${cl>0?3:0}px">
+          ${cR>15?`<span style="font-size:10px;font-weight:700;color:#fff">${cl}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Heatmap
+  const heatCols   = buckets.slice(-6);
+  const heatHeader = heatCols.map(b=>`<div style="font-size:10px;color:#9aabbd;text-align:center;font-weight:600">${b.label}</div>`).join('');
+  const heatRows   = metricStats.map(s => {
+    const cells = heatCols.map(b => {
+      const bk = s.byMonth[b.key] || { total:0, flagged:0 };
+      const p  = bk.total > 0 ? Math.round((bk.flagged/bk.total)*100) : 0;
+      return `<div style="height:28px;border-radius:4px;background:${heatBg(p)};color:${heatTx(p)};display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <span style="font-size:10px;font-weight:700">${p}%</span>
+        <span style="font-size:9px;opacity:.75">${bk.flagged} jobs</span>
+      </div>`;
+    }).join('');
+    return `<div style="font-size:10px;color:#4a6a8a;display:flex;align-items:center;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title.slice(0,30)}${s.title.length>30?'…':''}</div>${cells}`;
+  }).join('');
+
+  document.getElementById('summary-content').innerHTML = `
+    <!-- HERO -->
+    <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:12px;margin-bottom:14px">
+      <!-- Detail panel -->
+      <div style="background:#1a2e4a;border-radius:12px;padding:16px;display:flex;flex-direction:column;min-height:400px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.07)">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px">${active.title}</div>
+            <div style="font-size:11px;color:#4a6a8a">Month-by-month · ${currentDirection}</div>
+          </div>
+          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px;flex-shrink:0;margin-left:10px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span style="width:8px;height:8px;border-radius:2px;background:#2F7D5C;display:inline-block"></span>
+              <span style="font-size:10px;color:#8ba3c7">Total</span>
+              <strong style="font-size:12px;color:#fff;margin-left:2px">${total.toLocaleString()}</strong>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="width:8px;height:8px;border-radius:2px;background:#C5533C;display:inline-block"></span>
+              <span style="font-size:10px;color:#8ba3c7">Flagged</span>
+              <strong style="font-size:12px;color:#F0997B;margin-left:2px">${active.flagged.toLocaleString()}</strong>
+              <span style="font-size:10px;color:#4a6a8a">(${active.pct}%)</span>
+            </div>
+          </div>
+        </div>
+        ${moRows}
+      </div>
+
+      <!-- KPIs + log -->
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div style="background:#fff;border:1px solid #dde4ef;border-top:3px solid #d95a2a;border-radius:10px;padding:12px">
+            <div style="font-size:10px;font-weight:700;color:#7a96b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Jobs</div>
+            <div style="font-size:24px;font-weight:700;color:#d95a2a">${total.toLocaleString()}</div>
+            <div style="font-size:10px;color:#9aabbd">${currentDirection} · selected period</div>
+          </div>
+          <div style="background:#fff;border:1px solid #dde4ef;border-top:3px solid #1a8c60;border-radius:10px;padding:12px">
+            <div style="font-size:10px;font-weight:700;color:#7a96b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Avg Health</div>
+            <div style="font-size:24px;font-weight:700;color:#1a8c60">${avgHealth}%</div>
+            <div style="font-size:10px;color:#9aabbd">across all checkpoints</div>
+          </div>
+          <div style="background:#fff;border:1px solid #dde4ef;border-top:3px solid #c03030;border-radius:10px;padding:12px">
+            <div style="font-size:10px;font-weight:700;color:#7a96b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Red Zones</div>
+            <div style="font-size:24px;font-weight:700;color:#c03030">${redZones}</div>
+            <div style="font-size:10px;color:#9aabbd">checkpoints ≥50% flagged</div>
+          </div>
+        </div>
+        <!-- Checkpoint log -->
+        <div style="background:#fff;border:1px solid #dde4ef;border-radius:10px;padding:14px;flex:1;overflow:auto">
+          <div style="font-size:11px;font-weight:700;color:#1a2a3a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Checkpoint Log</div>
+          <div style="font-size:11px;color:#9aabbd;margin-bottom:10px">Click any row for monthly detail · ${currentDirection}</div>
+          ${metricStats.map((s,i) => `
+            <div onclick="summarySelectMetric(${i})" style="display:flex;align-items:center;gap:10px;padding:7px 8px;border-bottom:1px solid #eef1f6;cursor:pointer;border-radius:6px;border-left:3px solid ${i===activeIdx?'#2a78d6':'transparent'};background:${i===activeIdx?'#EAF3FF':'transparent'}" onmouseenter="if(${i}!==${activeIdx})this.style.background='#f5f7fa'" onmouseleave="if(${i}!==${activeIdx})this.style.background='transparent'">
+              <div style="width:8px;height:8px;border-radius:50%;background:${flagCol(s.pct)};flex-shrink:0"></div>
+              <span style="font-size:12px;color:#1a2a3a;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title}</span>
+              <div style="width:70px;height:5px;background:#eef1f6;border-radius:3px;flex-shrink:0;overflow:hidden">
+                <div style="width:${s.pct}%;height:100%;background:${flagCol(s.pct)};border-radius:3px;min-width:2px"></div>
+              </div>
+              <span style="font-size:12px;font-weight:700;color:${flagCol(s.pct)};width:36px;text-align:right;flex-shrink:0">${s.pct}%</span>
+              <span style="font-size:10px;color:#9aabbd">›</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- HEATMAP -->
+    <div style="background:#fff;border:1px solid #dde4ef;border-radius:12px;padding:16px">
+      <div style="font-size:11px;font-weight:700;color:#4a6a8a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Heat Map — Flag Rate by Checkpoint × Month</div>
+      <div style="font-size:10px;color:#9aabbd;margin-bottom:12px">Darker red = more flagged · Green = healthy · Last ${heatCols.length} periods · ${currentDirection}</div>
+      <div style="display:grid;grid-template-columns:200px repeat(${heatCols.length},1fr);gap:4px">
+        <div></div>${heatHeader}${heatRows}
+      </div>
+    </div>`;
+}
+
+window.summarySelectMetric = function(idx) {
+  window._summaryActiveIdx = idx;
+  renderSummary();
+};
+// Auto-select on load
+window._summaryActiveIdx = 0;
+
+// ── METRIC PAGE ─────────────────────────────────────────────────────────────
+function renderMetricPage(pageId) {
+  const metric  = METRICS.find(m => m.id === pageId);
+  if (!metric) return;
+  const filtered = getFilteredRecords();
+  const buckets  = getMonthBuckets();
+  const total    = filtered.length;
+  const flagged  = filtered.filter(metric.flag);
+  const pct      = total > 0 ? ((flagged.length/total)*100).toFixed(1) : '0.0';
+  const maxBucket = Math.max(...buckets.map(b => {
+    return filtered.filter(r => (r.etdDate||'').slice(0,7) === b.key).length;
+  }), 1);
+
+  const bars = buckets.map(b => {
+    const recs = filtered.filter(r => (r.etdDate||'').slice(0,7) === b.key);
+    const f    = recs.filter(metric.flag).length;
+    const cl   = recs.length - f;
+    const fR   = recs.length > 0 ? (f/recs.length)*100 : 0;
+    const cR   = recs.length > 0 ? (cl/recs.length)*100 : 0;
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="font-size:11px;font-weight:600;color:#4a6a8a;width:60px;flex-shrink:0;text-align:right">${b.label}</span>
+      <div style="flex:1;height:26px;display:flex;border-radius:4px;overflow:hidden;background:#eef1f6">
+        <div style="width:${fR}%;background:#C5533C;height:100%;display:flex;align-items:center;justify-content:center;min-width:${f>0?3:0}px">
+          ${fR>8?`<span style="font-size:10px;font-weight:700;color:#fff">${f}</span>`:''}
+        </div>
+        <div style="width:${cR}%;background:#2F7D5C;height:100%;display:flex;align-items:center;justify-content:center;min-width:${cl>0?3:0}px">
+          ${cR>10?`<span style="font-size:10px;font-weight:700;color:#fff">${cl}</span>`:''}
+        </div>
+      </div>
+      <span style="font-size:11px;font-weight:600;color:#4a6a8a;width:40px;flex-shrink:0">${recs.length}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById(pageId + '-content').innerHTML = `
+    <div style="background:#fff;border:1px solid #dde4ef;border-radius:12px;padding:18px 20px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#1a2a3a;margin-bottom:3px">${metric.title}</div>
+          <div style="font-size:12px;color:#9aabbd">${metric.desc} · ${currentDirection}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:16px">
+          <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-bottom:4px">
+            <span style="width:10px;height:10px;border-radius:2px;background:#2F7D5C;display:inline-block"></span>
+            <span style="font-size:12px;color:#4a6a8a">Total Jobs: <strong style="color:#1a2a3a">${total.toLocaleString()}</strong></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+            <span style="width:10px;height:10px;border-radius:2px;background:#C5533C;display:inline-block"></span>
+            <span style="font-size:12px;color:#4a6a8a">Flagged: <strong style="color:#c03030">${flagged.length.toLocaleString()}</strong> <span style="color:#9aabbd">(${pct}%)</span></span>
+          </div>
+        </div>
+      </div>
+      ${bars}
+    </div>`;
+}
+
+// ── GOOGLE AUTH SCRIPT ─────────────────────────────────────────────────────
+(function() {
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.async = true;
+  s.defer = true;
+  document.head.appendChild(s);
+})();
+
+window.onload = checkSession;
+</script>
+</body>
+</html>

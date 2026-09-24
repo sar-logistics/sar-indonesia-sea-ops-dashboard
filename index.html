@@ -6396,7 +6396,7 @@ async function refreshData(pageId) {
   const btn = document.querySelector('[onclick="refreshData(\''+pageId+'\')"]');
   if (btn) btn.innerHTML = '<i class="ti ti-refresh" style="font-size:13px;animation:spin .7s linear infinite"></i> Refreshing…';
   try {
-    const resp = await fetch(BATCH_API + '?t=' + Date.now(), { method:'POST', headers:{'Content-Type':'application/json','Cache-Control':'no-cache, no-store'}, body:JSON.stringify({ forceRefresh: true }) });
+    const resp = await fetch(BATCH_API + '?t=' + Date.now() + '&forceRefresh=1', { method:'GET', headers:{'Cache-Control':'no-cache, no-store'} });
     const data = await resp.json();
     rawSRR    = data.srr        || [];
     rawJPA    = data.jpa        || [];
@@ -7064,7 +7064,7 @@ async function loadData() {
 
     // Single call — server returns cached data instantly if cache is warm
     const resp = await fetch(BATCH_API + '?t=' + Date.now(), {
-      method: 'POST', headers: h, body: JSON.stringify({})
+      method: 'GET', headers: { 'Cache-Control': 'no-cache, no-store' }
     });
     if (!resp.ok) throw new Error('Batch API returned ' + resp.status);
     const data = await resp.json();
@@ -7081,9 +7081,8 @@ async function loadData() {
       setTimeout(async () => {
         try {
           const r2 = await fetch(BATCH_API + '?t=' + Date.now(), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' },
-            body: JSON.stringify({})
+            method: 'GET',
+            headers: { 'Cache-Control': 'no-cache, no-store' }
           });
           if (!r2.ok) return;
           const d2 = await r2.json();

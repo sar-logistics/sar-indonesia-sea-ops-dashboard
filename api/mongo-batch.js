@@ -2,7 +2,7 @@ import { MongoClient } from 'mongodb';
 
 const uri    = process.env.MONGO_URI;
 const SECRET = process.env.BATCH_SECRET;
-const DB     = 'sar-id-ops'; // DB name
+const DB     = 'sar-id-ops';
 const TTL_MS = 6 * 60 * 60 * 1000; // 6 hrs
 
 let mongoClient;
@@ -18,18 +18,9 @@ let cache = { data: null, builtAt: null };
 
 async function buildCache(db) {
   console.log('[ID-OPS] Building cache...');
-  const now   = new Date();
-  const from  = new Date('2024-01-01').toISOString();
-  const to    = now.toISOString();
-  const today = now.toISOString().slice(0, 10);
-
-  // Fetch all shipment records
-  const allDocs = await db.collection('id_ops_shipments').find({
-    etdDate: { $gte: from, $lte: to }
-  }).toArray();
-
+  const allDocs = await db.collection('id_ops_shipments').find({}).toArray();
   console.log(`[ID-OPS] Total docs: ${allDocs.length}`);
-  cache = { data: allDocs, builtAt: now.toISOString() };
+  cache = { data: allDocs, builtAt: new Date().toISOString() };
   return cache;
 }
 
@@ -51,14 +42,9 @@ export default async function handler(req, res) {
       const c   = await getClient();
       const db  = c.db(DB);
       const col = db.collection('id_ops_shipments');
-
-      // Delete existing records for this direction then reinsert
-      await col.deleteMany({ direction: direction });
+      await col.deleteMany({ direction });
       const result = await col.insertMany(records, { ordered: false });
-
-      // Bust cache
-      cache = { data: null, builtAt: null };
-
+      cache = { data: null, builtAt: null }; // bust cache
       return res.status(200).json({ inserted: result.insertedCount, direction });
     }
 
@@ -74,6 +60,8 @@ export default async function handler(req, res) {
         const db = c.db(DB);
         await buildCache(db);
       }
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('X-Cache-Age', Math.floor((new Date() - new Date(cache.builtAt)) / 1000));
       return res.status(200).json({ records: cache.data, builtAt: cache.builtAt });
     } catch (e) {
       console.error(e);

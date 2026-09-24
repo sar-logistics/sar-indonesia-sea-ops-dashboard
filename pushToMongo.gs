@@ -44,6 +44,8 @@ const C = {
   ETA_DISC:       82,   // ETA Discharge
   CARRIER_NAME:   90,   // Carrier Name
   TEU:            91,   // TEU
+  WIP:             3,   // WIP (col D — SUMIF from WIP, ACCURAL tab)
+  ACCURAL:         4,   // Accrual (col E — SUMIF from WIP, ACCURAL tab)
   UNRECOG_REV:   103,   // Unrecognized Revenue
   CONSOL_ATD:    118,   // Consol ATD
   CONSOL_ATA:    119,   // Consol ATA
@@ -121,6 +123,8 @@ function processTab(sheet, direction) {
       recognizedRevenue:   revRec,
       recognizedCost:      costRec,
       jobProfit:           profit,
+      wip:                 parseNum(row[C.WIP]),
+      accural:             parseNum(row[C.ACCURAL]),
       unrecognizedRevenue: parseNum(row[C.UNRECOG_REV]),
       totalRevenue:        revRec + parseNum(row[C.UNRECOG_REV]),
       marginPct:           parseNum(row[C.MARGIN_PCT]),

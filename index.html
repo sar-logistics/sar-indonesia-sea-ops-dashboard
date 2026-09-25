@@ -8437,266 +8437,120 @@ function renderSummary() {
   if (!container) return;
 
   const { cols, label, view } = getColumns(pageId);
-  const filtered  = applyDropdownFilters(filterByDate(allSRR, pageId), pageId);
-  const filteredJ = applyDropdownFilters(filterByDateJPA(allJPA, pageId), pageId);
+  const filtered = applyDropdownFilters(filterByDate(allSRR, pageId), pageId);
   populateFilters(pageId, filtered);
 
-  if (!cols.length) { container.innerHTML = '<div style="padding:40px;color:#94a3b8;text-align:center">No data for the selected period.</div>'; return; }
+  if (!filtered.length) {
+    container.innerHTML = '<div style="padding:40px;color:#94a3b8;text-align:center">No data for the selected period.</div>';
+    return;
+  }
 
-  // ── Compute per-report stats ──────────────────────────────────────────────
-  const reportStats = SUMMARY_REPORTS.map(report => {
-    let data = report.source === 'jpa' ? filteredJ : filtered;
+  // ── Compute per-metric stats ────────────────────────────────────────────
+  const today = Date.now();
+  const metrics = SUMMARY_REPORTS.map(report => {
+    let data = filtered;
     if (report.pre) data = data.filter(report.pre);
-    const colKeyFn = report.source === 'jpa' ? r => getColKeyJPA(r, view) : r => getColKey(r, view);
-    const totals = {}, flags = {};
-    cols.forEach(c => { totals[c.key] = 0; flags[c.key] = 0; });
-    data.forEach(r => {
-      const ck = colKeyFn(r);
-      if (!ck || totals[ck] === undefined) return;
-      totals[ck]++;
-      if (report.flag(r)) flags[ck]++;
-    });
-    const totalFlagged = Object.values(flags).reduce((a,b) => a+b, 0);
-    const totalAll     = Object.values(totals).reduce((a,b) => a+b, 0);
-    const pct          = totalAll > 0 ? +((totalFlagged / totalAll) * 100).toFixed(1) : 0;
-    return { report, totals, flags, totalFlagged, totalAll, pct };
+    const flagged = data.filter(r => report.flag(r));
+    const total   = data.length;
+    const count   = flagged.length;
+    const pct     = total > 0 ? (count / total) * 100 : 0;
+    return { report, total, count, pct, flagged, data };
   });
 
-  const grandTotal   = Math.max(...reportStats.map(s => s.totalAll));
-  const grandFlagged = reportStats.reduce((a,s) => a + s.totalFlagged, 0);
-  const avgHealth    = reportStats.length ? (100 - reportStats.reduce((a,s) => a + s.pct, 0) / reportStats.length).toFixed(1) : '0.0';
-  const redZones     = reportStats.filter(s => s.pct >= 50).length;
-  const worst        = [...reportStats].sort((a,b) => b.pct - a.pct)[0];
+  // ── KPI summary cards ──────────────────────────────────────────────────
+  const totalAllFlagged = metrics.reduce((a, m) => a + m.count, 0);
+  const totalJobs       = filtered.length;
+  const avgHealth       = metrics.length > 0
+    ? (metrics.reduce((a, m) => a + (100 - m.pct), 0) / metrics.length).toFixed(1)
+    : '100.0';
+  const redZones = metrics.filter(m => m.pct >= 50).length;
 
-  // ── Colour helper ─────────────────────────────────────────────────────────
-  const flagCol  = pct => pct >= 50 ? '#c03030' : pct >= 25 ? '#b86a10' : '#1a8c60';
-  const flagBg   = pct => pct >= 50 ? '#fde8e8' : pct >= 25 ? '#fef3e2' : '#e6f9f0';
-  const flagText = pct => pct >= 50 ? '#7a1010' : pct >= 25 ? '#7a4000' : '#084828';
-  const heatBg   = pct => pct >= 70 ? '#fde0e0' : pct >= 50 ? '#fbd0c0' : pct >= 30 ? '#fce8c0' : pct >= 15 ? '#c8f0dc' : '#a8e8c8';
-  const heatTx   = pct => pct >= 70 ? '#7a1010' : pct >= 50 ? '#8a2010' : pct >= 30 ? '#7a4000' : pct >= 15 ? '#0a4828' : '#084020';
-
-  // ── Radar data ────────────────────────────────────────────────────────────
-  const radarLabels = reportStats.map(s => s.report.title.split(' ').slice(0,3).join(' '));
-  const radarData   = reportStats.map(s => s.pct);
-
-  // ── Build HTML ────────────────────────────────────────────────────────────
-  // Section label helper
-  const secLabel = (dot, text) =>
-    `<div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#7a96b8;text-transform:uppercase;margin:16px 0 8px 2px;display:flex;align-items:center;gap:6px">
-      <span style="width:7px;height:7px;border-radius:2px;background:${dot};display:inline-block"></span>${text}
-    </div>`;
-
-  // ── HERO: Radar + KPIs + Log ──────────────────────────────────────────────
+  // ── Hero KPIs ──────────────────────────────────────────────────────────
   const heroHTML = `
-  <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:12px;margin-bottom:12px;align-items:stretch">
-
-    <!-- Master-detail chart -->
-    <div style="background:#1a2e4a;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;overflow:hidden">
-
-      <div id="sumDetailPanel" style="flex:1;display:flex;flex-direction:column;color:#4a6a8a;overflow-y:auto">
-        <div style="font-size:28px">👉</div>
-        <div style="font-size:13px;font-weight:600;color:#8ba3c7">Select a checkpoint</div>
-        <div style="font-size:11px;color:#4a6a8a">Click any row on the right</div>
-      </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+    <div style="background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e8ecf4;border-top:3px solid #e8573a;box-shadow:0 1px 4px rgba(0,0,0,.04)">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#9aabbd;text-transform:uppercase;margin-bottom:6px">TOTAL FLAGGED</div>
+      <div style="font-size:32px;font-weight:800;color:#e8573a;letter-spacing:-.5px;line-height:1">${totalAllFlagged.toLocaleString()}</div>
+      <div style="font-size:11px;color:#b0bece;margin-top:4px">across ${metrics.length} checkpoints</div>
     </div>
-
-    <!-- KPIs + Log -->
-    <div style="display:flex;flex-direction:column;gap:8px;height:100%">
-      <!-- KPI cards with accent top border -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-        <div style="background:#fff;border:1px solid #dde4ef;border-top:3px solid #d95a2a;border-radius:12px;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,.04)">
-          <div style="font-size:9px;font-weight:700;color:#9aabbd;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Total Flagged</div>
-          <div style="font-size:26px;font-weight:800;color:#d95a2a;line-height:1;letter-spacing:-.5px">${grandFlagged.toLocaleString()}</div>
-          <div style="font-size:10px;color:#7a96b8;margin-top:3px">across ${SUMMARY_REPORTS.length} checkpoints</div>
-        </div>
-        <div style="background:#fff;border:1px solid #dde4ef;border-top:3px solid #1a8c60;border-radius:12px;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,.04)">
-          <div style="font-size:9px;font-weight:700;color:#9aabbd;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Avg Health</div>
-          <div style="font-size:26px;font-weight:800;color:#1a8c60;line-height:1;letter-spacing:-.5px">${avgHealth}%</div>
-          <div style="font-size:10px;color:#7a96b8;margin-top:3px">jobs with no flags</div>
-        </div>
-        <div style="background:#fff;border:1px solid #dde4ef;border-top:3px solid #c03030;border-radius:12px;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,.04)">
-          <div style="font-size:9px;font-weight:700;color:#9aabbd;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Red Zones</div>
-          <div style="font-size:26px;font-weight:800;color:#c03030;line-height:1;letter-spacing:-.5px">${redZones}</div>
-          <div style="font-size:10px;color:#7a96b8;margin-top:3px">checkpoints ≥50% flagged</div>
-        </div>
-      </div>
-      <!-- Checkpoint Log — clickable -->
-      <div style="background:#fff;border:1px solid #dde4ef;border-radius:12px;padding:12px 16px;flex:1;overflow-y:auto;overflow-x:hidden;box-shadow:0 1px 4px rgba(0,0,0,.04);min-height:0">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
-          <div style="font-size:13px;font-weight:800;color:#0f1f2e;letter-spacing:.02em">CHECKPOINT LOG</div>
-          <button onclick="toggleSumSort()" title="Toggle sort order" style="font-size:11px;font-weight:700;padding:4px 10px;border:1px solid #dde4ef;border-radius:8px;background:#fff;color:#2a78d6;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);display:flex;align-items:center;gap:4px">
-            <span>${window._sumSort==="high"?"↓ Highest":"↑ Lowest"}</span>
-          </button>
-        </div>
-        <div style="font-size:11px;color:#6a8aaa;margin-bottom:10px">All ${SUMMARY_REPORTS.length} checkpoints · click any row for monthly detail</div>
-        ${(()=>{
-          const sort = window._sumSort || 'high';
-          const sorted = [...reportStats];
-          if (sort==='high') sorted.sort((a,b)=>b.pct-a.pct);
-          else if (sort==='low') sorted.sort((a,b)=>a.pct-b.pct);
-          return sorted.map((s, si) => {
-            const origIdx = reportStats.indexOf(s);
-            return `
-          <div onclick="sumShowDetail(${origIdx})" id="sum-log-row-${origIdx}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #f0f2f5;cursor:pointer;border-radius:8px;transition:all .12s" onmouseenter="if(this.dataset.active!=='1')this.style.background='#f7f9fc'" onmouseleave="if(this.dataset.active!=='1')this.style.background='transparent'" data-active="0">
-            <div style="width:9px;height:9px;border-radius:50%;background:${flagCol(s.pct)};flex-shrink:0"></div>
-            <span class="row-name" style="font-size:12px;color:#1a2a3a;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.report.title}</span>
-            <div style="width:72px;height:6px;background:#eef1f6;border-radius:3px;flex-shrink:0;overflow:hidden">
-              <div style="width:${s.pct}%;height:100%;background:${flagCol(s.pct)};border-radius:3px;min-width:2px"></div>
-            </div>
-            <span style="font-size:13px;font-weight:800;color:${flagCol(s.pct)};width:42px;text-align:right;flex-shrink:0;letter-spacing:-.3px">${s.pct}%</span>
-            <span class="row-arr" style="font-size:11px;color:#c8d4e0">›</span>
-          </div>`;
-          }).join('');
-        })()}
-      </div>
+    <div style="background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e8ecf4;border-top:3px solid #2e9e6e;box-shadow:0 1px 4px rgba(0,0,0,.04)">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#9aabbd;text-transform:uppercase;margin-bottom:6px">AVG HEALTH</div>
+      <div style="font-size:32px;font-weight:800;color:#2e9e6e;letter-spacing:-.5px;line-height:1">${avgHealth}%</div>
+      <div style="font-size:11px;color:#b0bece;margin-top:4px">jobs with no flags</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e8ecf4;border-top:3px solid #dc2626;box-shadow:0 1px 4px rgba(0,0,0,.04)">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#9aabbd;text-transform:uppercase;margin-bottom:6px">RED ZONES</div>
+      <div style="font-size:32px;font-weight:800;color:#dc2626;letter-spacing:-.5px;line-height:1">${redZones}</div>
+      <div style="font-size:11px;color:#b0bece;margin-top:4px">checkpoints ≥50% flagged</div>
     </div>
   </div>`;
 
-  const sparkHTML = ``;
-
-  // ── RANKED + FUNNEL ───────────────────────────────────────────────────────
-  const sortedByPct = [...reportStats].sort((a,b) => b.pct - a.pct);
-  const rankedRows  = sortedByPct.map((s,i) => `
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-      <span style="font-size:11px;color:#9aabbd;width:14px;flex-shrink:0">${i+1}</span>
-      <span style="font-size:12px;color:#4a6a8a;width:190px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${s.report.title}">${s.report.title}</span>
-      <div style="flex:1;background:#eef1f6;border-radius:3px;height:7px;overflow:hidden">
-        <div style="width:${s.pct}%;min-width:3px;height:100%;background:${flagCol(s.pct)};border-radius:3px"></div>
-      </div>
-      <span style="font-size:12px;font-weight:700;color:${flagCol(s.pct)};width:34px;text-align:right;flex-shrink:0">${s.pct}%</span>
-    </div>`).join('');
-
-  const funnelData = sortedByPct.map(s => ({
-    label: s.report.title,
-    n: s.totalFlagged,
-    total: s.totalAll,
-    pct: s.totalAll > 0 ? Math.round((s.totalFlagged / s.totalAll) * 100) : 0,
-    col: flagCol(s.pct)
-  }));
-  const funnelRows = funnelData.map(d => `
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-      <span style="font-size:12px;color:#4a6a8a;width:150px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.label}">${d.label}</span>
-      <div style="flex:1;background:#eef1f6;border-radius:3px;height:22px;overflow:hidden">
-        <div style="width:${Math.max(d.pct,2)}%;min-width:36px;height:100%;background:${d.col};display:flex;align-items:center;padding:0 7px;border-radius:3px">
-          <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.95)">${d.n}</span>
-          <span style="font-size:11px;color:rgba(255,255,255,.5);margin-left:auto">${d.pct}%</span>
+  // ── Metric KPI cards grid ──────────────────────────────────────────────
+  const metricCards = metrics.map(m => {
+    const pctStr = m.pct.toFixed(1) + '%';
+    const color  = m.pct >= 50 ? '#dc2626' : m.pct >= 20 ? '#d97706' : '#2e9e6e';
+    const bgTop  = m.pct >= 50 ? '#dc2626' : m.pct >= 20 ? '#d97706' : '#2e9e6e';
+    return `
+    <div style="background:#fff;border-radius:12px;padding:14px 16px;border:1px solid #e8ecf4;border-top:3px solid ${bgTop};box-shadow:0 1px 4px rgba(0,0,0,.04);cursor:pointer"
+         onclick="setPage('${m.report.id}','${m.report.title}','Main Metrics',null)">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#9aabbd;text-transform:uppercase;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.report.title}</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+        <div>
+          <div style="font-size:26px;font-weight:800;color:${color};letter-spacing:-.5px;line-height:1">${pctStr}</div>
+          <div style="font-size:11px;color:#b0bece;margin-top:4px">${m.count.toLocaleString()} of ${m.total.toLocaleString()} jobs</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:#9aabbd;font-weight:600">Total</div>
+          <div style="font-size:18px;font-weight:700;color:#1a2a3a">${m.total.toLocaleString()}</div>
         </div>
       </div>
-    </div>`).join('');
-
-  const drillHTML = ``;
-
-  // ── HEATMAP ───────────────────────────────────────────────────────────────
-  const heatCols = cols.slice(-6);
-  const heatHeader = heatCols.map(c => `<div style="font-size:11px;color:#9aabbd;text-align:center;font-weight:600;padding-bottom:2px">${c.label.length > 7 ? c.label.slice(0,7) : c.label}</div>`).join('');
-  const heatRows = reportStats.map(s => {
-    const cells = heatCols.map(c => {
-      const t = s.totals[c.key] || 0;
-      const f = s.flags[c.key]  || 0;
-      const p = t > 0 ? Math.round((f/t)*100) : 0;
-      return `<div style="height:44px;border-radius:3px;background:${heatBg(p)};color:${heatTx(p)};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px 4px"><span style="font-size:12px;font-weight:700;line-height:1">${p}%</span><span style="font-size:10px;opacity:.75;line-height:1">${f} jobs</span></div>`;
-    }).join('');
-    return `<div style="font-size:11px;color:#4a6a8a;display:flex;align-items:center;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:4px" title="${s.report.title}">${s.report.title.slice(0,28)}${s.report.title.length>28?'…':''}</div>${cells}`;
+      <div style="margin-top:10px;height:4px;background:#f0f2f5;border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(m.pct,100).toFixed(1)}%;background:${bgTop};border-radius:2px;transition:width .4s ease"></div>
+      </div>
+    </div>`;
   }).join('');
 
-  const heatHTML = `
-  ${secLabel('#b86a10', 'Heat map — pattern detection')}
-  <div style="background:#fff;border:1px solid #dde4ef;border-radius:12px;padding:14px 16px;margin-bottom:12px">
-    <div style="font-size:12px;font-weight:700;color:#4a6a8a;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px">Flag rate by checkpoint × period</div>
-    <div style="font-size:11px;color:#9aabbd;margin-bottom:10px">Darker red = more flagged · Green = healthy · Last ${heatCols.length} periods</div>
-    <div style="display:grid;grid-template-columns:200px repeat(${heatCols.length},1fr);gap:3px">
-      <div></div>${heatHeader}${heatRows}
-    </div>
+  const cardsHTML = `
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+    ${metricCards}
   </div>`;
 
-  // ── Stitch together ───────────────────────────────────────────────────────
-  container.innerHTML = heroHTML + sparkHTML + drillHTML;
+  // ── Monthly trend table ──────────────────────────────────────────────
+  const maxMoVal = Math.max(...cols.map(c => {
+    return metrics.reduce((a, m) => a + (m.data.filter(r => getColKey(r,view) === c.key).length || 0), 0);
+  }), 1);
 
-  // ── Master-detail: show monthly breakdown on left when log row clicked ────
-  window._sumSort = 'high';
-  window.setSumSort = function(val) {
-    window._sumSort = val;
-    renderSummary();
-  };
-  window.toggleSumSort = function() {
-    window._sumSort = (window._sumSort === 'high') ? 'low' : 'high';
-    renderSummary();
-  };
-
-  window.sumShowDetail = function(si) {
-    const s    = reportStats[si];
-    const col  = flagCol(s.pct);
-
-    // highlight active row
-    reportStats.forEach((_,i) => {
-      const r = document.getElementById('sum-log-row-' + i);
-      if (!r) return;
-      r.style.background   = 'transparent';
-      r.style.border       = i === si ? '1.5px solid #2a78d6' : '1.5px solid transparent';
-      r.style.borderRadius = '8px';
-      r.style.boxShadow    = 'none';
-      r.style.padding      = i === si ? '8px 8px' : '7px 6px';
-      r.querySelector('span.row-name') && (r.querySelector('span.row-name').style.fontWeight = i === si ? '700' : '500');
-      r.querySelector('span.row-name') && (r.querySelector('span.row-name').style.color = i === si ? '#1a2a3a' : '#2a3a4a');
-      r.querySelector('span.row-arr') && (r.querySelector('span.row-arr').style.color = i === si ? '#2a78d6' : '#c8d4e0');
-      r.dataset.active     = i === si ? '1' : '0';
-    });
-
-    // build monthly bars from real totals/flags per col
-    const maxMoVal = Math.max(...cols.map(c => s.totals[c.key]||0), 1);
-    const moRows = cols.map(c => {
-      const t   = s.totals[c.key] || 0;
-      const f   = s.flags[c.key]  || 0;
-      const cl  = t - f;
-      const pct = t > 0 ? ((f/t)*100).toFixed(1) : '0.0';
-      const barW = (t / maxMoVal) * 100;
-      const fRatio = t > 0 ? (f/t)*100 : 0;
-      const cRatio = t > 0 ? (cl/t)*100 : 0;
-      return `<div style="background:rgba(255,255,255,.07);border-radius:8px;padding:7px 10px;margin-bottom:5px;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px">
-        <div style="font-size:12px;font-weight:700;color:#fff;width:62px;flex-shrink:0">${c.label}</div>
-        <div style="flex:1;min-width:0">
-          <div style="height:8px;border-radius:20px;overflow:hidden;background:rgba(255,255,255,.08);margin-bottom:4px;display:flex">
-            <div style="width:${fRatio}%;background:#e8573a;height:100%;border-radius:20px 0 0 20px;min-width:${f>0?3:0}px;flex-shrink:0"></div>
-            <div style="width:${cRatio}%;background:#2e9e6e;height:100%;border-radius:${fRatio<1?'20px':'0'} 20px 20px ${fRatio<1?'20px':'0'};min-width:${cl>0?3:0}px;flex-shrink:0"></div>
-          </div>
-          <div style="font-size:10px;color:#f5a882;font-weight:600"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#C5533C;margin-right:4px;vertical-align:middle"></span>${f.toLocaleString()} flagged · <span style="font-weight:700">${pct}%</span></div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;line-height:1">${t.toLocaleString()}</div>
-          <div style="font-size:9px;color:#8ba3c7">Total</div>
-        </div>
-      </div>`;
-    }).join('');
-
-    document.getElementById('sumDetailPanel').innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.07)">
-        <div style="flex:1;min-width:0;padding-right:12px">
-          <div style="font-size:14px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:3px">${s.report.title}</div>
-          <div style="font-size:10px;color:#8ba3c7">Monthly breakdown · flagged vs clear</div>
-        </div>
-        <div style="flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 14px">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
-            <span style="width:8px;height:8px;border-radius:2px;background:#2F7D5C;display:inline-block;flex-shrink:0"></span>
-            <span style="font-size:11px;color:#8ba3c7">Total</span>
-            <strong style="font-size:12px;color:#fff;margin-left:2px">${s.totalAll.toLocaleString()}</strong>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="width:8px;height:8px;border-radius:2px;background:#C5533C;display:inline-block;flex-shrink:0"></span>
-            <span style="font-size:11px;color:#8ba3c7">Flagged</span>
-            <strong style="font-size:12px;color:#F0997B;margin-left:2px">${s.totalFlagged.toLocaleString()}</strong>
-            <span style="font-size:10px;color:#4a6a8a">(${s.pct}%)</span>
-          </div>
-        </div>
+  const monthRows = cols.map(c => {
+    const monthData = filtered.filter(r => getColKey(r, view) === c.key);
+    const monthTotal = monthData.length;
+    const monthFlagged = metrics.reduce((a, m) => {
+      return a + m.data.filter(r => getColKey(r,view) === c.key && m.report.flag(r)).length;
+    }, 0);
+    const monthPct = monthTotal > 0 ? ((monthFlagged / monthTotal) * 100).toFixed(1) : '0.0';
+    const barW = monthTotal > 0 ? Math.round((monthFlagged / monthTotal) * 100) : 0;
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f0f2f5">
+      <div style="font-size:12px;font-weight:600;color:#4a6a8a;width:60px;flex-shrink:0">${c.label}</div>
+      <div style="flex:1;height:6px;background:#f0f2f5;border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${barW}%;background:#e8573a;border-radius:3px"></div>
       </div>
-      ${moRows}`;
-  };
+      <div style="font-size:12px;font-weight:700;color:#e8573a;width:38px;text-align:right">${monthPct}%</div>
+      <div style="font-size:11px;color:#9aabbd;width:60px;text-align:right">${monthFlagged}/${monthTotal}</div>
+    </div>`;
+  }).join('');
 
+  const trendHTML = `
+  <div style="background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e8ecf4;box-shadow:0 1px 4px rgba(0,0,0,.04)">
+    <div style="font-size:13px;font-weight:800;color:#0f1f2e;margin-bottom:12px">MONTHLY TREND</div>
+    ${monthRows || '<div style="color:#9aabbd;font-size:12px;padding:12px 0">No monthly data available</div>'}
+  </div>`;
 
-  // auto-select worst checkpoint on load
-  setTimeout(() => { if(reportStats.length) window.sumShowDetail(0); }, 100);
+  container.innerHTML = heroHTML + cardsHTML + trendHTML;
 
-
+  // Update badge counts
+  metrics.forEach(m => setBadge(m.report.id, m.count));
 }
+
 
 function buildSummaryChart(cols, totals, flags, report, view) {
   const isWeekly    = view === 'weekly';

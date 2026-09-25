@@ -274,3 +274,30 @@ function pushAll() {
 
   Logger.log('=== SAR ID Ops Push Done ===');
 }
+
+// ── WIPE ALL — clears both Export and Import from MongoDB ──────────────────
+function wipeAll() {
+  Logger.log('=== Wiping all records ===');
+  ['Export', 'Import'].forEach(dir => {
+    try {
+      const resp = UrlFetchApp.fetch(OPS_BATCH_URL, {
+        method: 'POST',
+        contentType: 'application/json',
+        headers: { 'x-batch-secret': OPS_BATCH_SECRET },
+        payload: JSON.stringify({ action: 'wipe', direction: dir }),
+        muteHttpExceptions: true,
+      });
+      Logger.log('Wipe ' + dir + ': HTTP ' + resp.getResponseCode() + ' — ' + resp.getContentText().slice(0,100));
+    } catch(e) {
+      Logger.log('Wipe ERROR ' + dir + ': ' + e.message);
+    }
+  });
+  Logger.log('=== Wipe done ===');
+}
+
+// ── WIPE THEN PUSH — safest full refresh ──────────────────────────────────
+function wipeAndPushAll() {
+  wipeAll();
+  Utilities.sleep(1000);
+  pushAll();
+}

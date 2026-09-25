@@ -1,5 +1,5 @@
 // ── SAR Indonesia Sea Ops — Apps Script Data Push ──────────────────────────
-// File: SHIPMENT PROFILE REPORT IND CUS.XLSX
+// File: SHIPMENT PROFILE REPORT IND CUS .XLSX
 // Sheet ID: 1x1WEhIxCPJamtDnKNyGvF6R3H88cwuDDK2ud1OemV2c
 // Tab "Shipment Profile Export" → Export records
 // Tab "Shipment Profile Import" → Import records
@@ -17,44 +17,44 @@ const OPS_SHEET_ID     = '1x1WEhIxCPJamtDnKNyGvF6R3H88cwuDDK2ud1OemV2c';
 const TAB_EXPORT       = 'Shipment Profile Export';
 const TAB_IMPORT       = 'Shipment Profile Import';
 
-// ── EXACT column indices (0-based) from row 1 header ──────────────────────
+// ── EXACT column indices (0-based, A=0) verified from sheet on 25-Sep-2026 ──
 const C = {
-  SHIPMENT_ID:     2,   // Shipment ID
-  MODE:            9,   // Mode (FCL/LCL)
-  ORIGIN:         14,   // Origin
-  ORIGIN_CTRY:    15,   // Origin Ctry
-  DEST:           16,   // Destination
-  DEST_CTRY:      17,   // Destination Country
-  ORIGIN_ETD:     28,   // Origin ETD
-  JOB_BRANCH:     56,   // Job Branch
-  JOB_DEPT:       57,   // Job Dept (FES/FIS)
-  LOCAL_CLIENT:   59,   // Local Client Name
-  SALES_REP:      60,   // Job Sales Rep
-  OPERATOR:       61,   // Job Operator
-  JOB_STATUS:     62,   // Job Status (WRK/CLS/CMP)
-  JOB_OPENED:     63,   // Job Opened
-  REV_REC:        64,   // Recognized Revenue
-  COST_REC:       67,   // Recognized Cost
-  JOB_PROFIT:     70,   // Job Profit
-  ETD_FIRST_LOAD: 74,   // ETD First Load ← SOB date
-  ETA_LAST_DISC:  75,   // ETA Last Discharge
-  MBL_NUMBER:     76,   // Master (MBL number)
-  VESSEL:         77,   // Vessel
-  ETD_LOAD:       81,   // ETD Load
-  ETA_DISC:       82,   // ETA Discharge
-  CARRIER_NAME:   90,   // Carrier Name
-  TEU:            91,   // TEU
-  WIP:             3,   // WIP (col D — SUMIF from WIP, ACCURAL tab)
-  ACCURAL:         4,   // Accrual (col E — SUMIF from WIP, ACCURAL tab)
-  UNRECOG_REV:   103,   // Unrecognized Revenue
-  CONSOL_ATD:    118,   // Consol ATD
-  CONSOL_ATA:    119,   // Consol ATA
-  DIRECTION:     121,   // Direction (Export/Import)
-  HBL_RELEASED:  137,   // HBL Released Date ← direct!
-  INVOICE_DATE:  138,   // Invoice Date ← direct!
-  SHIPPED_OB:    140,   // Shipped On Board
-  MBL_RELEASED:  142,   // MBL Released ← direct!
-  MARGIN_PCT:    143,   // Margin %
+  SHIPMENT_ID:     0,   // A  — Shipment ID
+  WIP:             3,   // D  — WIP (SUMIF from WIP,ACCURAL tab)
+  ACCURAL:         4,   // E  — Accrual (SUMIF from WIP,ACCURAL tab)
+  MODE:            9,   // J  — Mode (FCL/LCL/AIR)
+  ORIGIN:         14,   // O  — Origin
+  ORIGIN_CTRY:    15,   // P  — Origin Ctry
+  DEST:           16,   // Q  — Destination
+  DEST_CTRY:      17,   // R  — Destination Country
+  ORIGIN_ETD:     27,   // AB — Origin ETD
+  JOB_BRANCH:     55,   // BD — Job Branch
+  JOB_DEPT:       56,   // BE — Job Dept
+  LOCAL_CLIENT:   58,   // BG — Local Client Name
+  SALES_REP:      59,   // BH — Job Sales Rep
+  OPERATOR:       60,   // BI — Job Operator
+  JOB_STATUS:     61,   // BJ — Job Status (WRK/CLS/CMP)
+  JOB_OPENED:     62,   // BK — Job Opened
+  REV_REC:        63,   // BL — Recognized Revenue
+  REV_WIP:        64,   // BM — Recognized WIP
+  COST_REC:       67,   // BP — Recognized Cost
+  JOB_PROFIT:     69,   // BR — Job Profit
+  ETD_FIRST_LOAD: 73,   // BV — ETD First Load ← SOB date
+  ETA_LAST_DISC:  74,   // BW — ETA Last Discharge
+  MBL_NUMBER:     75,   // BX — Master (MBL number)
+  VESSEL:         76,   // BY — Vessel
+  ETD_LOAD:       79,   // CC — ETD Load
+  ETA_DISC:       80,   // CD — ETA Discharge
+  CARRIER_NAME:   88,   // CL — Carrier Name
+  TEU:            89,   // CM — TEU
+  CONSOL_ATD:    113,   // DF — Consol ATD
+  CONSOL_ATA:    114,   // DG — Consol ATA
+  DIRECTION:     112,   // DI — Direction (Export/Import)
+  HBL_RELEASED:  129,   // DZ — HBL Released Date
+  INVOICE_DATE:  130,   // EA — Invoice Date
+  SHIPPED_OB:    132,   // EC — Shipped On Board
+  MBL_RELEASED:  134,   // EE — MBL Released
+  MARGIN_PCT:    135,   // EF — Margin %
 };
 
 function parseDate(val) {
@@ -62,7 +62,6 @@ function parseDate(val) {
   if (val instanceof Date) return isNaN(val) ? null : val.toISOString();
   const s = String(val).trim();
   if (!s || s === 'IMM' || s === 'N/A' || s === '#DIV/0!') return null;
-  // Handle "DEP 19-Sep-22" style strings
   const match = s.match(/(\d{1,2})[\-\/]([A-Za-z]+)[\-\/](\d{2,4})/);
   if (match) {
     const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
@@ -99,34 +98,32 @@ function processTab(sheet, direction) {
     records.push({
       shipmentId,
       direction,
-      mode:            String(row[C.MODE]          || '').trim(),
-      origin:          String(row[C.ORIGIN]        || '').trim(),
-      originCtry:      String(row[C.ORIGIN_CTRY]   || '').trim(),
-      destination:     String(row[C.DEST]          || '').trim(),
-      destCtry:        String(row[C.DEST_CTRY]     || '').trim(),
-      jobBranch:       String(row[C.JOB_BRANCH]    || '').trim(),
-      jobDept:         String(row[C.JOB_DEPT]      || '').trim(),
-      localClientName: String(row[C.LOCAL_CLIENT]  || '').trim(),
-      salesRep:        String(row[C.SALES_REP]     || '').trim(),
-      operator:        String(row[C.OPERATOR]      || '').trim(),
-      jobStatus:       String(row[C.JOB_STATUS]    || '').trim(),
-      vessel:          String(row[C.VESSEL]        || '').trim(),
-      carrierName:     String(row[C.CARRIER_NAME]  || '').trim(),
-      mblNumber:       String(row[C.MBL_NUMBER]    || '').trim(),
-      teu:             parseNum(row[C.TEU]),
-      jobOpenedDate:   parseDate(row[C.JOB_OPENED]),
+      mode:                String(row[C.MODE]          || '').trim(),
+      origin:              String(row[C.ORIGIN]        || '').trim(),
+      originCtry:          String(row[C.ORIGIN_CTRY]   || '').trim(),
+      destination:         String(row[C.DEST]          || '').trim(),
+      destCtry:            String(row[C.DEST_CTRY]     || '').trim(),
+      jobBranch:           String(row[C.JOB_BRANCH]    || '').trim(),
+      jobDept:             String(row[C.JOB_DEPT]      || '').trim(),
+      localClientName:     String(row[C.LOCAL_CLIENT]  || '').trim(),
+      salesRep:            String(row[C.SALES_REP]     || '').trim(),
+      operator:            String(row[C.OPERATOR]      || '').trim(),
+      jobStatus:           String(row[C.JOB_STATUS]    || '').trim(),
+      vessel:              String(row[C.VESSEL]        || '').trim(),
+      carrierName:         String(row[C.CARRIER_NAME]  || '').trim(),
+      mblNumber:           String(row[C.MBL_NUMBER]    || '').trim(),
+      teu:                 parseNum(row[C.TEU]),
+      jobOpenedDate:       parseDate(row[C.JOB_OPENED]),
       etdDate,
-      etaDate:         parseDate(row[C.ETA_LAST_DISC]) || parseDate(row[C.ETA_DISC]),
-      consolAtd:       parseDate(row[C.CONSOL_ATD]),
-      consolAta:       parseDate(row[C.CONSOL_ATA]),
-      shippedOnBoard:  parseDate(row[C.SHIPPED_OB]),
+      etaDate:             parseDate(row[C.ETA_LAST_DISC]) || parseDate(row[C.ETA_DISC]),
+      consolAtd:           parseDate(row[C.CONSOL_ATD]),
+      consolAta:           parseDate(row[C.CONSOL_ATA]),
+      shippedOnBoard:      parseDate(row[C.SHIPPED_OB]),
       recognizedRevenue:   revRec,
       recognizedCost:      costRec,
       jobProfit:           profit,
       wip:                 parseNum(row[C.WIP]),
       accural:             parseNum(row[C.ACCURAL]),
-      unrecognizedRevenue: parseNum(row[C.UNRECOG_REV]),
-      totalRevenue:        revRec + parseNum(row[C.UNRECOG_REV]),
       marginPct:           parseNum(row[C.MARGIN_PCT]),
       hblReleasedDate:     parseDate(row[C.HBL_RELEASED]),
       mblReleasedDate:     parseDate(row[C.MBL_RELEASED]),

@@ -682,6 +682,12 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
         </div>
       </div>
       <div class="sidebar-nav-scroll">
+      <!-- Collapse/Expand All button -->
+      <div style="display:flex;justify-content:flex-end;padding:0 10px 8px">
+        <button id="sb-toggle-all" onclick="toggleAllSections()" style="font-size:10px;font-weight:600;color:rgba(181,212,244,.6);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 10px;cursor:pointer;letter-spacing:.04em;transition:all .15s;display:flex;align-items:center;gap:4px">
+          <i class="ti ti-arrows-minimize" id="sb-toggle-icon" style="font-size:10px"></i><span id="sb-toggle-lbl">Collapse All</span>
+        </button>
+      </div>
       <!-- Summary at top -->
       <div id="sec-summary-body" style="display:block;max-height:none!important">
         <div class="nav-item" data-tooltip="Summary — Overall dashboard overview" onclick="setPage('summary','Summary','Summary',this)" id="nav-summary">
@@ -4318,12 +4324,12 @@ function initSections() {
   const summaryBody = document.getElementById('sec-summary-body');
   if (summaryBody) { summaryBody.style.maxHeight = '9999px'; summaryBody.dataset.open = '1'; }
 
-  // Collapse all sections by default
+  // Open all sections by default
   ['pendency','performance','milestone','invoice'].forEach(id => {
     const body = document.getElementById('sec-' + id + '-body');
     const hdr  = document.getElementById('sec-' + id + '-hdr');
-    if (body) { body.style.maxHeight = '0'; body.dataset.open = '0'; }
-    if (hdr)  hdr.classList.add('sec-collapsed');
+    if (body) { body.style.maxHeight = '9999px'; body.dataset.open = '1'; }
+    if (hdr)  hdr.classList.remove('sec-collapsed');
   });
 }
 
@@ -8598,6 +8604,34 @@ function renderSummary() {
   window.toggleSumSort = function() {
     window._sumSort = (window._sumSort === 'high') ? 'low' : 'high';
     renderSummary();
+  };
+
+  window._allExpanded = true;
+  window.toggleAllSections = function() {
+    const sections = ['pendency','performance','milestone','invoice'];
+    const lbl = document.getElementById('sb-toggle-lbl');
+    const icon = document.getElementById('sb-toggle-all')?.querySelector('i');
+    if (window._allExpanded) {
+      sections.forEach(id => {
+        const body = document.getElementById('sec-' + id + '-body');
+        const hdr  = document.getElementById('sec-' + id + '-hdr');
+        if (body) { body.style.maxHeight = '0'; body.dataset.open = '0'; }
+        if (hdr)  hdr.classList.add('sec-collapsed');
+      });
+      if (lbl) lbl.textContent = 'Expand All';
+      if (icon) { icon.classList.remove('ti-arrows-minimize'); icon.classList.add('ti-arrows-maximize'); }
+      window._allExpanded = false;
+    } else {
+      sections.forEach(id => {
+        const body = document.getElementById('sec-' + id + '-body');
+        const hdr  = document.getElementById('sec-' + id + '-hdr');
+        if (body) { body.style.maxHeight = '9999px'; body.dataset.open = '1'; }
+        if (hdr)  hdr.classList.remove('sec-collapsed');
+      });
+      if (lbl) lbl.textContent = 'Collapse All';
+      if (icon) { icon.classList.remove('ti-arrows-maximize'); icon.classList.add('ti-arrows-minimize'); }
+      window._allExpanded = true;
+    }
   };
 
   window.sumShowDetail = function(si) {

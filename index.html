@@ -715,135 +715,68 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       </div>
 
       <div class="nav-section-divider"></div>
-      <!-- Pendency Metrics Section -->
+
+      <!-- Job Related -->
       <div class="nav-section-hdr pendency" id="sec-pendency-hdr" onclick="toggleSection('pendency')">
-        <i class="ti ti-alert-triangle" style="font-size:10px"></i>Pendency Metrics
+        <i class="ti ti-briefcase" style="font-size:10px"></i>Job Related
         <i class="ti ti-chevron-down sec-chev"></i>
       </div>
       <div class="nav-section-body" id="sec-pendency-body">
-
-      <!-- Job Related -->
-      <div class="nav-group" id="grpJob">
-        <div class="nav-group-hdr" data-tooltip="Job Related" onclick="toggleGroup('grpJob')">
-          <i class="ti ti-briefcase grp-icon"></i><span>Job Related</span>
-          <i class="ti ti-chevron-right chev"></i>
+        <div class="nav-item" data-tooltip="Total Jobs Created in the period" onclick="setPage('total-jobs','Total Jobs Created','Job Related',this)">
+          <i class="ti ti-briefcase"></i><span class="nav-item-label">Total Jobs Created</span>
         </div>
-        <div class="nav-items-wrap" id="items-grpJob">
-          <div class="nav-item" data-tooltip="Job Order No. not linked with Shipment" onclick="setPage('job-unlinked','Job Order No. not linked with Shipment','Job Related',this)">
-            <i class="ti ti-link-off"></i><span class="nav-item-label">Job Order No. not linked with Shipment</span><span class="nav-badge hidden" id="badge-job-unlinked">0</span>
-          </div>
-          <div class="nav-item" data-tooltip="First OL not done within 7 days of SOB" onclick="setPage('ol-delay','First OL not done within 7 days of SOB','Job Related',this)">
-            <i class="ti ti-clock-exclamation"></i><span class="nav-item-label">First OL not done within 7 days of SOB</span><span class="nav-badge hidden" id="badge-ol-delay">0</span>
-          </div>
-          <div class="nav-item" data-tooltip="Total Jobs Created" onclick="setPage('total-jobs','Total Jobs Created','Job Related',this)">
-            <i class="ti ti-briefcase"></i><span class="nav-item-label">Total Jobs Created</span>
-          </div>
+        <div class="nav-item" data-tooltip="Jobs currently open and not yet closed" onclick="setPage('open-jobs','Open Jobs','Job Related',this)">
+          <i class="ti ti-folder-open"></i><span class="nav-item-label">Open Jobs</span><span class="nav-badge hidden" id="badge-open-jobs">0</span>
         </div>
-      </div>
-
-      <!-- Job: Revenue, Cost & Profit -->
-      <div class="nav-group" id="grpRCP">
-        <div class="nav-group-hdr" data-tooltip="Job: Revenue, Cost & Profit" onclick="toggleGroup('grpRCP')">
-          <i class="ti ti-report-money grp-icon"></i><span>Job: Revenue, Cost &amp; Profit</span>
-          <i class="ti ti-chevron-right chev"></i>
-        </div>
-        <div class="nav-items-wrap" id="items-grpRCP">
-          <div class="nav-item" data-tooltip="Jobs Having Job Profit < 3%" onclick="setPage('low-profit','Jobs Having Job Profit &lt; 3%','Job: Revenue, Cost &amp; Profit',this)">
-            <i class="ti ti-trending-down"></i><span class="nav-item-label">Jobs Having Job Profit &lt; 3%</span><span class="nav-badge warn hidden" id="badge-low-profit">0</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Shipments with Different HBL/MBL Type -->
-      <div class="nav-group" id="grpMBLHBL">
-        <div class="nav-group-hdr" data-tooltip="Shipments: HBL/MBL Type" onclick="toggleGroup('grpMBLHBL')">
-          <i class="ti ti-arrows-exchange grp-icon"></i><span>Shipments: HBL/MBL Type</span>
-          <i class="ti ti-chevron-right chev"></i>
-        </div>
-        <div class="nav-items-wrap" id="items-grpMBLHBL">
-          <div class="nav-item" data-tooltip="MBL Collect · HBL Prepaid" onclick="setPage('mbl-col-hbl-pre','MBL Collect · HBL Prepaid','Shipments: HBL/MBL Type',this)">
-            <i class="ti ti-arrows-exchange"></i><span class="nav-item-label">MBL Collect · HBL Prepaid</span>
-          </div>
-          <div class="nav-item" data-tooltip="MBL Collect · HBL Collect" onclick="setPage('mbl-col-hbl-col','MBL Collect · HBL Collect','Shipments: HBL/MBL Type',this)">
-            <i class="ti ti-arrows-exchange"></i><span class="nav-item-label">MBL Collect · HBL Collect</span>
-          </div>
-          <div class="nav-item" data-tooltip="MBL Prepaid · HBL Prepaid" onclick="setPage('mbl-pre-hbl-pre','MBL Prepaid · HBL Prepaid','Shipments: HBL/MBL Type',this)">
-            <i class="ti ti-arrows-exchange"></i><span class="nav-item-label">MBL Prepaid · HBL Prepaid</span>
-          </div>
-          <div class="nav-item" data-tooltip="MBL Prepaid · HBL Collect" onclick="setPage('mbl-pre-hbl-col','MBL Prepaid · HBL Collect','Shipments: HBL/MBL Type',this)">
-            <i class="ti ti-arrows-exchange"></i><span class="nav-item-label">MBL Prepaid · HBL Collect</span>
-          </div>
-          <div class="nav-item" data-tooltip="MBL Type Blank (Business Dimension not filled)" onclick="setPage('mbl-type-blank','MBL Type Blank (Business Dimension not filled completely)','Shipments: HBL/MBL Type',this)">
-            <i class="ti ti-circle-off"></i><span class="nav-item-label">MBL Type Blank (Business Dimension not filled completely)</span><span class="nav-badge hidden" id="badge-mbl-type-blank">0</span>
-          </div>
-          <div class="nav-item" data-tooltip="HBL Type Blank (IncoTerm not filled)" onclick="setPage('hbl-type-blank','HBL Type Blank (IncoTerm not filled)','Shipments: HBL/MBL Type',this)">
-            <i class="ti ti-circle-off"></i><span class="nav-item-label">HBL Type Blank (IncoTerm not filled)</span><span class="nav-badge hidden" id="badge-hbl-type-blank">0</span>
-          </div>
-        </div>
-      </div>
-
-
-      <!-- HBL, MBL & Pre-Alert -->
-      <div class="nav-group" id="grpHBLTrack">
-        <div class="nav-group-hdr" data-tooltip="Milestone Pendency Reports" onclick="toggleGroup('grpHBLTrack')">
-          <i class="ti ti-file-certificate grp-icon"></i><span>Milestone Pendency Reports</span>
-          <i class="ti ti-chevron-right chev"></i>
-        </div>
-        <div class="nav-items-wrap" id="items-grpHBLTrack">
-          <div class="nav-item" data-tooltip="Vendor Payment Request within 3 Days of ETD" onclick="setPage('vendor-payment-delay','Vendor Payment Request within 3 Days of ETD','Milestone Pendency Reports',this)">
-            <i class="ti ti-cash"></i><span class="nav-item-label">Vendor Payment Request within 3 Days of ETD</span><span class="nav-badge hidden" id="badge-vendor-payment-delay">0</span>
-          </div>
-          <div class="nav-item" data-tooltip="SOB Date not filled" onclick="setPage('sob-blank','SOB Date not filled','Milestone Pendency Reports',this)">
-            <i class="ti ti-calendar-off"></i><span class="nav-item-label">SOB Date not filled</span><span class="nav-badge hidden" id="badge-sob-blank">0</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Invoice & Credit Note -->
-      <div class="nav-group" id="grpInv">
-        <div class="nav-group-hdr" data-tooltip="Invoice & Credit Note" onclick="toggleGroup('grpInv')">
-          <i class="ti ti-file-invoice grp-icon"></i><span>Invoice &amp; Credit Note</span>
-          <i class="ti ti-chevron-right chev"></i>
-        </div>
-        <div class="nav-items-wrap" id="items-grpInv">
-          <div class="nav-item" data-tooltip="Invoice not raised within 3 days of SOB" onclick="setPage('inv-delay','Invoice not raised within 3 days of SOB','Invoice &amp; Credit Note',this)">
-            <i class="ti ti-clock"></i><span class="nav-item-label">Invoice not raised within 3 days of SOB</span><span class="nav-badge hidden" id="badge-inv-delay">0</span>
-          </div>
-        </div>
-      </div>
-
       </div><!-- /sec-pendency-body -->
 
       <div class="nav-section-divider"></div>
-      <!-- Performance Metrics Section -->
+
+      <!-- Job: Revenue, Cost & Profit -->
       <div class="nav-section-hdr performance" id="sec-performance-hdr" onclick="toggleSection('performance')">
-        <i class="ti ti-trending-up" style="font-size:10px"></i>Performance Metrics
+        <i class="ti ti-report-money" style="font-size:10px"></i>Job: Revenue, Cost &amp; Profit
         <i class="ti ti-chevron-down sec-chev"></i>
       </div>
       <div class="nav-section-body" id="sec-performance-body">
-      <div class="nav-item" data-tooltip="First OL > 7 Days of SOB" onclick="setPage('perf-ol','First OL &gt; 7 Days of SOB','Performance Metrics',this)">
-        <i class="ti ti-clock-exclamation"></i><span class="nav-item-label">First OL &gt; 7 Days of SOB</span>
-      </div>
-      <div class="nav-item" data-tooltip="HBL Not Released > 7 Days of SOB" onclick="setPage('perf-hbl','HBL Not Released &gt; 7 Days of SOB','Performance Metrics',this)">
-        <i class="ti ti-file-certificate"></i><span class="nav-item-label">HBL Not Released &gt; 7 Days of SOB</span>
-      </div>
-      <div class="nav-item" data-tooltip="MBL Not Released > 7 Days of SOB" onclick="setPage('perf-mbl','MBL Not Released &gt; 7 Days of SOB','Performance Metrics',this)">
-        <i class="ti ti-file-certificate"></i><span class="nav-item-label">MBL Not Released &gt; 7 Days of SOB</span>
-      </div>
-      <div class="nav-item" data-tooltip="Pre-Alert Not Sent > 10 Days of SOB" onclick="setPage('perf-prealert','Pre-Alert Not Sent &gt; 10 Days of SOB','Performance Metrics',this)">
-        <i class="ti ti-send-off"></i><span class="nav-item-label">Pre-Alert Not Sent &gt; 10 Days of SOB</span>
-      </div>
-      <div class="nav-item" data-tooltip="Invoice not raised within 3 days of SOB" onclick="setPage('perf-inv','Invoice not raised within 3 days of SOB','Performance Metrics',this)">
-        <i class="ti ti-receipt"></i><span class="nav-item-label">Invoice not raised within 3 days of SOB</span>
-      </div>
-      <div class="nav-item" data-tooltip="SI Submitted to Liner within 4 Days of SOB" onclick="setPage('perf-si','SI Submitted to Liner within 4 Days of SOB','Performance Metrics',this)">
-        <i class="ti ti-file-text"></i><span class="nav-item-label">SI Submitted to Liner within 4 Days of SOB</span>
-      </div>
-      <div class="nav-item" data-tooltip="Vendor Payment Request within 3 Days of ETD" onclick="setPage('perf-vendor-payment','Vendor Payment Request within 3 Days of ETD','Performance Metrics',this)">
-        <i class="ti ti-cash"></i><span class="nav-item-label">Vendor Payment Request within 3 Days of ETD</span>
-      </div>
-
+        <div class="nav-item" data-tooltip="Revenue not billed within 3 days of SOB" onclick="setPage('revenue-not-billed','Revenue Not Billed within 3 Days of SOB','Job: Revenue, Cost &amp; Profit',this)">
+          <i class="ti ti-receipt"></i><span class="nav-item-label">Revenue Not Billed within 3 Days of SOB</span><span class="nav-badge hidden" id="badge-revenue-not-billed-2">0</span>
+        </div>
+        <div class="nav-item" data-tooltip="Cost not posted within 7 days of SOB" onclick="setPage('cost-not-posted','Cost Not Posted within 7 Days of SOB','Job: Revenue, Cost &amp; Profit',this)">
+          <i class="ti ti-coins"></i><span class="nav-item-label">Cost Not Posted within 7 Days of SOB</span><span class="nav-badge hidden" id="badge-cost-not-posted-2">0</span>
+        </div>
+        <div class="nav-item" data-tooltip="Jobs with profit margin below 3%" onclick="setPage('job-profit','Jobs Having Job Profit &lt; 3%','Job: Revenue, Cost &amp; Profit',this)">
+          <i class="ti ti-trending-down"></i><span class="nav-item-label">Jobs Having Job Profit &lt; 3%</span><span class="nav-badge warn hidden" id="badge-job-profit-2">0</span>
+        </div>
       </div><!-- /sec-performance-body -->
+
+      <div class="nav-section-divider"></div>
+
+      <!-- Milestone Pendency Reports -->
+      <div class="nav-section-hdr pendency" id="sec-milestone-hdr" onclick="toggleSection('milestone')">
+        <i class="ti ti-file-certificate" style="font-size:10px"></i>Milestone Pendency Reports
+        <i class="ti ti-chevron-down sec-chev"></i>
+      </div>
+      <div class="nav-section-body" id="sec-milestone-body">
+        <div class="nav-item" data-tooltip="HBL pending release beyond 7 days from SOB" onclick="setPage('hbl-release','HBL Not Released &gt; 7 Days of SOB','Milestone Pendency Reports',this)">
+          <i class="ti ti-file-certificate"></i><span class="nav-item-label">HBL Not Released &gt; 7 Days of SOB</span><span class="nav-badge hidden" id="badge-hbl-release-2">0</span>
+        </div>
+        <div class="nav-item" data-tooltip="MBL pending release beyond 7 days from SOB" onclick="setPage('mbl-release','MBL Not Released &gt; 7 Days of SOB','Milestone Pendency Reports',this)">
+          <i class="ti ti-file-certificate"></i><span class="nav-item-label">MBL Not Released &gt; 7 Days of SOB</span><span class="nav-badge hidden" id="badge-mbl-release-2">0</span>
+        </div>
+      </div><!-- /sec-milestone-body -->
+
+      <div class="nav-section-divider"></div>
+
+      <!-- Invoice & Credit Note -->
+      <div class="nav-section-hdr performance" id="sec-invoice-hdr" onclick="toggleSection('invoice')">
+        <i class="ti ti-file-invoice" style="font-size:10px"></i>Invoice &amp; Credit Note
+        <i class="ti ti-chevron-down sec-chev"></i>
+      </div>
+      <div class="nav-section-body" id="sec-invoice-body">
+        <div class="nav-item" data-tooltip="Invoice not raised within 3 days of SOB" onclick="setPage('invoice-not-raised','Invoice Not Raised within 3 Days of SOB','Invoice &amp; Credit Note',this)">
+          <i class="ti ti-file-invoice"></i><span class="nav-item-label">Invoice Not Raised within 3 Days of SOB</span><span class="nav-badge hidden" id="badge-invoice-not-raised-2">0</span>
+        </div>
+      </div><!-- /sec-invoice-body -->
 
       <div class="nav-section-divider"></div>
 

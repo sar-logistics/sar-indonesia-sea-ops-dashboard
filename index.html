@@ -8619,16 +8619,18 @@ function renderSummary() {
     allSRR = rawSRR.filter(r => (r.direction || '').toLowerCase() === dir.toLowerCase());
     // Re-render current page
     const activeEl = document.querySelector('.page.active');
-    const pageId = activeEl ? activeEl.id.replace('page-', '') : 'summary';
-    const mappedId = Object.entries({
-      'unbilled-rev': 'revenue-not-billed',
-      'unposted-cost': 'cost-not-posted',
-      'low-profit': 'job-profit',
-      'hbl-not-released': 'hbl-release',
-      'mbl-not-released': 'mbl-release',
-      'inv-delay': 'invoice-not-raised',
-    }).reduce((acc, [k,v]) => { acc[k]=k; acc[v]=v; return acc; }, {})[pageId] || pageId;
-    renderPage(mappedId || pageId);
+    const divId = activeEl ? activeEl.id.replace('page-', '') : 'summary';
+    // Map div ID back to renderPage ID
+    const divToRenderMap = {
+      'unbilled-rev':    'revenue-not-billed',
+      'unposted-cost':   'cost-not-posted',
+      'low-profit':      'job-profit',
+      'hbl-not-released':'hbl-release',
+      'mbl-not-released':'mbl-release',
+      'inv-delay':       'invoice-not-raised',
+    };
+    const renderId = divToRenderMap[divId] || divId;
+    renderPage(renderId);
   };
 
   if (!window._sumSort) window._sumSort = 'high'; // init only once

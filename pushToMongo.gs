@@ -1,61 +1,13 @@
 // ── SAR Indonesia Sea Ops — Apps Script Data Push ──────────────────────────
-// File: SHIPMENT PROFILE REPORT IND CUS .XLSX
 // Sheet ID: 1x1WEhIxCPJamtDnKNyGvF6R3H88cwuDDK2ud1OemV2c
-// Tab "Shipment Profile Export" → Export records
-// Tab "Shipment Profile Import" → Import records
-// Row 1 = headers, data starts row 2
-//
-// HOW TO USE:
-// 1. In Apps Script, create a new file called "pushOps"
-// 2. Paste this entire script
-// 3. Run pushAll() once manually to test
-// 4. Set trigger: pushAll → Mon & Thu 9:00 AM
+// Verified column mapping: 25-Sep-2026
+// Run pushAll() manually or set trigger Mon & Thu 9:00 AM
 
 const OPS_BATCH_URL    = 'https://sar-indonesia-sea-ops-dashboard.vercel.app/api/mongo-batch';
 const OPS_BATCH_SECRET = 'Harsh@2644';
 const OPS_SHEET_ID     = '1x1WEhIxCPJamtDnKNyGvF6R3H88cwuDDK2ud1OemV2c';
 const TAB_EXPORT       = 'Shipment Profile Export';
 const TAB_IMPORT       = 'Shipment Profile Import';
-
-// ── EXACT column indices (0-based, A=0) verified from sheet on 25-Sep-2026 ──
-const C = {
-  SHIPMENT_ID:     0,   // A  — Shipment ID
-  WIP:             3,   // D  — WIP (SUMIF from WIP,ACCURAL tab)
-  ACCURAL:         4,   // E  — Accrual (SUMIF from WIP,ACCURAL tab)
-  MODE:            9,   // J  — Mode (FCL/LCL/AIR)
-  ORIGIN:         14,   // O  — Origin
-  ORIGIN_CTRY:    15,   // P  — Origin Ctry
-  DEST:           16,   // Q  — Destination
-  DEST_CTRY:      17,   // R  — Destination Country
-  ORIGIN_ETD:     27,   // AB — Origin ETD
-  JOB_BRANCH:     55,   // BD — Job Branch
-  JOB_DEPT:       56,   // BE — Job Dept
-  LOCAL_CLIENT:   58,   // BG — Local Client Name
-  SALES_REP:      59,   // BH — Job Sales Rep
-  OPERATOR:       60,   // BI — Job Operator
-  JOB_STATUS:     61,   // BJ — Job Status (WRK/CLS/CMP)
-  JOB_OPENED:     62,   // BK — Job Opened
-  REV_REC:        63,   // BL — Recognized Revenue
-  REV_WIP:        64,   // BM — Recognized WIP
-  COST_REC:       67,   // BP — Recognized Cost
-  JOB_PROFIT:     69,   // BR — Job Profit
-  ETD_FIRST_LOAD: 73,   // BV — ETD First Load ← SOB date
-  ETA_LAST_DISC:  74,   // BW — ETA Last Discharge
-  MBL_NUMBER:     75,   // BX — Master (MBL number)
-  VESSEL:         76,   // BY — Vessel
-  ETD_LOAD:       79,   // CC — ETD Load
-  ETA_DISC:       80,   // CD — ETA Discharge
-  CARRIER_NAME:   88,   // CL — Carrier Name
-  TEU:            89,   // CM — TEU
-  CONSOL_ATD:    113,   // DF — Consol ATD
-  CONSOL_ATA:    114,   // DG — Consol ATA
-  DIRECTION:     112,   // DI — Direction (Export/Import)
-  HBL_RELEASED:  129,   // DZ — HBL Released Date
-  INVOICE_DATE:  130,   // EA — Invoice Date
-  SHIPPED_OB:    132,   // EC — Shipped On Board
-  MBL_RELEASED:  134,   // EE — MBL Released
-  MARGIN_PCT:    135,   // EF — Margin %
-};
 
 function parseDate(val) {
   if (!val) return null;
@@ -65,10 +17,11 @@ function parseDate(val) {
   const match = s.match(/(\d{1,2})[\-\/]([A-Za-z]+)[\-\/](\d{2,4})/);
   if (match) {
     const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
-    const day = parseInt(match[1]);
-    const mon = months[match[2].toLowerCase().slice(0,3)];
-    const yr  = match[3].length === 2 ? 2000 + parseInt(match[3]) : parseInt(match[3]);
-    const d   = new Date(yr, mon, day);
+    const d = new Date(
+      match[3].length === 2 ? 2000 + parseInt(match[3]) : parseInt(match[3]),
+      months[match[2].toLowerCase().slice(0,3)],
+      parseInt(match[1])
+    );
     return isNaN(d) ? null : d.toISOString();
   }
   const d = new Date(s);
@@ -81,62 +34,202 @@ function parseNum(val) {
   return isNaN(n) ? 0 : n;
 }
 
+function str(val) { return String(val || '').trim(); }
+
 function processTab(sheet, direction) {
   const data = sheet.getDataRange().getValues();
-  const rows = data.slice(1); // skip header
+  const headers = data[0].map(h => str(h));
+  const rows = data.slice(1);
   const records = [];
 
   rows.forEach(row => {
-    const shipmentId = String(row[C.SHIPMENT_ID] || '').trim();
+    const shipmentId = str(row[0]); // A - Shipment ID
     if (!shipmentId || shipmentId.startsWith('#') || shipmentId === 'Shipment ID') return;
 
-    const etdDate = parseDate(row[C.ETD_FIRST_LOAD]) || parseDate(row[C.ETD_LOAD]) || parseDate(row[C.ORIGIN_ETD]);
-    const revRec  = parseNum(row[C.REV_REC]);
-    const costRec = Math.abs(parseNum(row[C.COST_REC]));
-    const profit  = parseNum(row[C.JOB_PROFIT]);
+    // Build record with ALL columns as key:value using header names
+    const rec = { shipmentId, direction };
 
-    records.push({
-      shipmentId,
-      direction,
-      mode:                String(row[C.MODE]          || '').trim(),
-      origin:              String(row[C.ORIGIN]        || '').trim(),
-      originCtry:          String(row[C.ORIGIN_CTRY]   || '').trim(),
-      destination:         String(row[C.DEST]          || '').trim(),
-      destCtry:            String(row[C.DEST_CTRY]     || '').trim(),
-      jobBranch:           String(row[C.JOB_BRANCH]    || '').trim(),
-      jobDept:             String(row[C.JOB_DEPT]      || '').trim(),
-      localClientName:     String(row[C.LOCAL_CLIENT]  || '').trim(),
-      salesRep:            String(row[C.SALES_REP]     || '').trim(),
-      operator:            String(row[C.OPERATOR]      || '').trim(),
-      jobStatus:           String(row[C.JOB_STATUS]    || '').trim(),
-      vessel:              String(row[C.VESSEL]        || '').trim(),
-      carrierName:         String(row[C.CARRIER_NAME]  || '').trim(),
-      mblNumber:           String(row[C.MBL_NUMBER]    || '').trim(),
-      teu:                 parseNum(row[C.TEU]),
-      jobOpenedDate:       parseDate(row[C.JOB_OPENED]),
-      etdDate,
-      etaDate:             parseDate(row[C.ETA_LAST_DISC]) || parseDate(row[C.ETA_DISC]),
-      consolAtd:           parseDate(row[C.CONSOL_ATD]),
-      consolAta:           parseDate(row[C.CONSOL_ATA]),
-      shippedOnBoard:      parseDate(row[C.SHIPPED_OB]),
-      recognizedRevenue:   revRec,
-      recognizedCost:      costRec,
-      jobProfit:           profit,
-      wip:                 parseNum(row[C.WIP]),
-      accural:             parseNum(row[C.ACCURAL]),
-      marginPct:           parseNum(row[C.MARGIN_PCT]),
-      hblReleasedDate:     parseDate(row[C.HBL_RELEASED]),
-      mblReleasedDate:     parseDate(row[C.MBL_RELEASED]),
-      invoiceDate:         parseDate(row[C.INVOICE_DATE]),
+    // Map every column by header name → camelCase key
+    headers.forEach((h, i) => {
+      if (!h || i === 0) return; // skip empty headers and Shipment ID (already set)
+      const val = row[i];
+      if (val === '' || val === null || val === undefined) return;
+
+      // Determine if date, number or string
+      const key = headerToKey(h, i);
+      if (!key) return;
+
+      if (isDateCol(i)) {
+        const d = parseDate(val);
+        if (d) rec[key] = d;
+      } else if (isNumCol(i)) {
+        rec[key] = parseNum(val);
+      } else {
+        const s = str(val);
+        if (s) rec[key] = s;
+      }
     });
+
+    records.push(rec);
   });
 
   return records;
 }
 
+// Map column index to camelCase key name
+function headerToKey(header, idx) {
+  // Key columns we care about — named explicitly
+  const explicit = {
+    1:  'trans',
+    2:  'bookingReceived',
+    3:  'wip',
+    4:  'accural',
+    5:  'bookingIssued',
+    6:  'customsInfo',
+    7:  'carrierConfirmed',
+    8:  'contractNo',
+    9:  'mode',
+    10: 'stuffingLocation',
+    11: 'customerService',
+    12: 'documentationContact',
+    13: 'documentationContact2',
+    14: 'origin',
+    15: 'originCtry',
+    16: 'destination',
+    17: 'destCtry',
+    18: 'consignorCode',
+    19: 'consignorName',
+    20: 'consigneeCode',
+    21: 'consigneeName',
+    22: 'houseRef',
+    23: 'incoterm',
+    24: 'additionalIncoterm',
+    25: 'ppdCcx',
+    26: 'goodsDescription',
+    27: 'originEtd',
+    28: 'etdMonth',
+    29: 'destinationEta',
+    30: 'etaMonth',
+    31: 'weight',
+    33: 'volume',
+    35: 'loadingMeters',
+    36: 'chargeable',
+    38: 'innerPkgs',
+    40: 'outerPkgs',
+    42: 'added',
+    43: 'controllingOffice1',
+    44: 'controllingOffice2',
+    45: 'controllingOffice3',
+    46: 'controllingOffice4',
+    47: 'transportJob',
+    48: 'brokerageJob',
+    49: 'isMasterLeader',
+    50: 'masterLeaderRef',
+    51: 'importBrokerage1',
+    52: 'importBrokerage2',
+    53: 'exportBrokerage1',
+    54: 'exportBrokerage2',
+    55: 'jobBranch',
+    56: 'jobDept',
+    57: 'localClientCode',
+    58: 'localClientName',
+    59: 'salesRep',
+    60: 'operator',
+    61: 'jobStatus',
+    62: 'jobOpenedDate',
+    63: 'recognizedRevenue',
+    64: 'recognizedWip',
+    65: 'totalRecognizedRevenue',
+    66: 'recognizedCost',
+    67: 'recognizedCost2',
+    68: 'totalRecognizedCost',
+    69: 'jobProfit',
+    70: 'consolId',
+    71: 'firstLoad',
+    72: 'lastDischarge',
+    73: 'etdDate',         // ETD First Load ← SOB
+    74: 'etaDate',
+    75: 'mblNumber',
+    76: 'vessel',
+    77: 'flightVoyage',
+    78: 'loadPort',
+    79: 'dischargePort',
+    80: 'etdLoad',
+    81: 'etaDischarge',
+    82: 'sendingAgent1',
+    83: 'sendingAgent2',
+    84: 'receivingAgent1',
+    85: 'receivingAgent2',
+    86: 'coLoadedWith',
+    87: 'coLoaderName',
+    88: 'carrierCode',
+    89: 'carrierName',
+    90: 'teu',
+    91: 'containerCount',
+    92: 'other',
+    93: 'cnt20F',
+    94: 'cnt20R',
+    95: 'cnt20H',
+    96: 'cnt40F',
+    97: 'cnt40R',
+    98: 'cnt40H',
+    99: 'cnt45F',
+    100:'cntGen',
+    101:'serviceLevel',
+    102:'shippersRef',
+    103:'consignorCity',
+    104:'consignorState',
+    105:'consignorPostal',
+    106:'consigneeCity',
+    107:'consigneeState',
+    108:'consigneePostal',
+    109:'consolAtd',
+    110:'consolAta',
+    111:'jobRevenueCode',
+    112:'direction',
+    113:'localClientCity',
+    114:'localClientCountry',
+    115:'overseasAgent1',
+    116:'overseasAgent2',
+    117:'jobOverseasAgent1',
+    118:'jobOverseasAgent2',
+    119:'carrBookingRef',
+    120:'containerNo',
+    121:'consoleType',
+    122:'sector',
+    123:'networkName',
+    124:'releaseType',
+    125:'registeredDate',
+    126:'todayExchangeRate',
+    127:'jobProfitLocal',
+    128:'consolPayment',
+    129:'hblReleasedDate',
+    130:'invoiceDate',
+    131:'preAlertDate',
+    132:'shippedOnBoard',
+    133:'firstCmpDate',
+    134:'mblReleasedDate',
+    135:'marginPct',
+    136:'invoicedDate',
+    137:'vendorPaymentDate',
+    138:'vendorPaymentStatus',
+  };
+  return explicit[idx] || null;
+}
+
+// Date column indices
+function isDateCol(i) {
+  return [2,3,4,5,7,27,29,62,73,74,80,81,109,110,125,129,130,131,132,133,134,136,137].indexOf(i) >= 0;
+}
+
+// Numeric column indices
+function isNumCol(i) {
+  return [31,33,35,36,38,40,63,64,65,66,67,68,69,90,91,93,94,95,96,97,98,99,100,126,127,135].indexOf(i) >= 0;
+}
+
 function pushRecords(records, direction) {
   if (!records.length) { Logger.log('No ' + direction + ' records, skipping'); return; }
-  const CHUNK = 500;
+  const CHUNK = 200; // smaller chunks for larger payloads
   let pushed = 0;
   for (let i = 0; i < records.length; i += CHUNK) {
     const chunk = records.slice(i, i + CHUNK);
@@ -149,9 +242,9 @@ function pushRecords(records, direction) {
         muteHttpExceptions: true,
       });
       const code = resp.getResponseCode();
-      Logger.log(direction + ' chunk ' + (Math.floor(i/CHUNK)+1) + ': HTTP ' + code + ' — ' + resp.getContentText().slice(0,100));
+      Logger.log(direction + ' chunk ' + (Math.floor(i/CHUNK)+1) + ': HTTP ' + code + ' — ' + resp.getContentText().slice(0,120));
       if (code === 200) pushed += chunk.length;
-      Utilities.sleep(300);
+      Utilities.sleep(500);
     } catch(e) {
       Logger.log('ERROR ' + direction + ': ' + e.message);
     }
@@ -163,21 +256,19 @@ function pushAll() {
   Logger.log('=== SAR ID Ops Push Starting ===');
   const ss = SpreadsheetApp.openById(OPS_SHEET_ID);
 
-  // Export tab
   const expSheet = ss.getSheetByName(TAB_EXPORT);
   if (!expSheet) { Logger.log('ERROR: Tab "' + TAB_EXPORT + '" not found'); }
   else {
     const expRecords = processTab(expSheet, 'Export');
-    Logger.log('Export records: ' + expRecords.length);
+    Logger.log('Export records found: ' + expRecords.length);
     pushRecords(expRecords, 'Export');
   }
 
-  // Import tab
   const impSheet = ss.getSheetByName(TAB_IMPORT);
   if (!impSheet) { Logger.log('ERROR: Tab "' + TAB_IMPORT + '" not found'); }
   else {
     const impRecords = processTab(impSheet, 'Import');
-    Logger.log('Import records: ' + impRecords.length);
+    Logger.log('Import records found: ' + impRecords.length);
     pushRecords(impRecords, 'Import');
   }
 

@@ -789,6 +789,11 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       </div>
     </div>
     <div class="tb-divider"></div>
+    <!-- Export/Import toggle -->
+    <div style="display:flex;background:rgba(255,255,255,.08);border-radius:8px;padding:2px;gap:2px;flex-shrink:0;margin-right:4px">
+      <button id="dir-export" onclick="setDirection('Export')" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:6px;border:none;cursor:pointer;background:#2a78d6;color:#fff;transition:all .15s">Export</button>
+      <button id="dir-import" onclick="setDirection('Import')" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:6px;border:none;cursor:pointer;background:transparent;color:rgba(255,255,255,.5);transition:all .15s">Import</button>
+    </div>
     <div id="tb-filter-row" style="display:flex;align-items:center;gap:8px;flex:1"><!-- filters injected here --></div>
     <div class="tb-spacer"></div>
     <div class="tb-hamburger-menu">
@@ -4259,6 +4264,7 @@ function toggleSidebar() {
 let currentRole = null;
 let allSRR = [];
 let rawSRR = [];
+let currentDirection = 'Export'; // 'Export' or 'Import' 
 let allJPA = [];
 let rawJPA = [];
 let opsMapping = [];
@@ -6301,12 +6307,12 @@ async function refreshData(pageId) {
   try {
     const resp = await fetch(BATCH_API + '?t=' + Date.now() + '&forceRefresh=1', { method:'GET', headers:{'Cache-Control':'no-cache, no-store'} });
     const data = await resp.json();
-    rawSRR    = data.srr        || [];
-    rawJPA    = data.jpa        || [];
+    rawSRR    = data.records    || [];
+    rawJPA    = [];
     allUsers  = data.users      || [];
     opsMapping = [];
-    allSRR   = [...rawSRR];
-    allJPA   = [...rawJPA];
+    allSRR   = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase());
+    allJPA   = [];
     applyRLS();
     initFilters(pageId);
     renderPage(pageId);
@@ -7026,7 +7032,8 @@ async function loadData() {
     rawJPA     = [];
     allUsers   = data.users      || [];
     opsMapping = [];
-    allSRR     = [...rawSRR];
+    // Filter by current direction
+    allSRR = rawSRR.filter(r => (r.direction || '').toLowerCase() === currentDirection.toLowerCase());
     allJPA = [...rawJPA];
     applyRLS();
     setTimeout(updateMainMetricsBadges, 500);
@@ -8599,6 +8606,30 @@ function renderSummary() {
   container.innerHTML = heroHTML + sparkHTML + drillHTML;
 
   // ── Master-detail: show monthly breakdown on left when log row clicked ────
+  // ── EXPORT / IMPORT DIRECTION TOGGLE ─────────────────────
+  window.setDirection = function(dir) {
+    currentDirection = dir;
+    // Update button styles
+    const expBtn = document.getElementById('dir-export');
+    const impBtn = document.getElementById('dir-import');
+    if (expBtn) { expBtn.style.background = dir==='Export' ? '#2a78d6' : 'transparent'; expBtn.style.color = dir==='Export' ? '#fff' : 'rgba(255,255,255,.5)'; }
+    if (impBtn) { impBtn.style.background = dir==='Import' ? '#2a78d6' : 'transparent'; impBtn.style.color = dir==='Import' ? '#fff' : 'rgba(255,255,255,.5)'; }
+    // Filter rawSRR by direction
+    allSRR = rawSRR.filter(r => (r.direction || '').toLowerCase() === dir.toLowerCase());
+    // Re-render current page
+    const activeEl = document.querySelector('.page.active');
+    const pageId = activeEl ? activeEl.id.replace('page-', '') : 'summary';
+    const mappedId = Object.entries({
+      'unbilled-rev': 'revenue-not-billed',
+      'unposted-cost': 'cost-not-posted',
+      'low-profit': 'job-profit',
+      'hbl-not-released': 'hbl-release',
+      'mbl-not-released': 'mbl-release',
+      'inv-delay': 'invoice-not-raised',
+    }).reduce((acc, [k,v]) => { acc[k]=k; acc[v]=v; return acc; }, {})[pageId] || pageId;
+    renderPage(mappedId || pageId);
+  };
+
   window._sumSort = 'high';
   window.setSumSort = function(val) {
     window._sumSort = val;

@@ -789,11 +789,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       </div>
     </div>
     <div class="tb-divider"></div>
-    <!-- Export/Import toggle -->
-    <div style="display:flex;background:rgba(255,255,255,.08);border-radius:8px;padding:2px;gap:2px;flex-shrink:0;margin-right:4px">
-      <button id="dir-export" onclick="setDirection('Export')" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:6px;border:none;cursor:pointer;background:#2a78d6;color:#fff;transition:all .15s">Export</button>
-      <button id="dir-import" onclick="setDirection('Import')" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:6px;border:none;cursor:pointer;background:transparent;color:rgba(255,255,255,.5);transition:all .15s">Import</button>
-    </div>
     <div id="tb-filter-row" style="display:flex;align-items:center;gap:8px;flex:1"><!-- filters injected here --></div>
     <div class="tb-spacer"></div>
     <div class="tb-hamburger-menu">
@@ -812,6 +807,15 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
         <div class="tb-ud-item" style="flex-direction:column;align-items:flex-start;gap:2px">
           <div class="tb-live-inner"><span class="tb-live-dot"></span>Live Data Connected</div>
           <div id="tb-last-updated" style="font-size:10px;color:rgba(181,212,244,.4);padding-left:15px">—</div>
+        </div>
+        <div class="tb-ud-divider"></div>
+        <!-- Direction Toggle -->
+        <div class="tb-ud-item" style="flex-direction:column;align-items:flex-start;gap:8px;padding:12px 16px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:rgba(94,187,190,.6);text-transform:uppercase">Direction</div>
+          <div style="display:flex;background:rgba(255,255,255,.06);border-radius:8px;padding:2px;gap:2px;width:100%">
+            <button id="dir-export" onclick="setDirection('Export');toggleUserMenu()" style="flex:1;font-size:11px;font-weight:700;padding:5px 0;border-radius:6px;border:none;cursor:pointer;background:#2a78d6;color:#fff;transition:all .15s">Export</button>
+            <button id="dir-import" onclick="setDirection('Import');toggleUserMenu()" style="flex:1;font-size:11px;font-weight:700;padding:5px 0;border-radius:6px;border:none;cursor:pointer;background:transparent;color:rgba(255,255,255,.5);transition:all .15s">Import</button>
+          </div>
         </div>
         <div class="tb-ud-divider"></div>
         <button class="tb-ud-item tb-ud-btn" id="feedbackBtn" onclick="openFeedback();toggleUserMenu()">

@@ -172,7 +172,7 @@ body.sidebar-hidden .sidebar-reveal{opacity:1;pointer-events:all}
 .nav-group-hdr .chev{margin-left:auto;font-size:12px;transition:transform .35s cubic-bezier(.34,1.56,.64,1);color:rgba(255,255,255,.3)}
 .nav-group-hdr.collapsed .chev{transform:rotate(-90deg)}
 .grp-icon{font-size:17px;flex-shrink:0;color:rgba(181,212,244,.55)}
-#sec-pendency-body .grp-icon{color:rgba(181,212,244,.55)}
+#sec-pendency-body .grp-icon,#sec-milestone-body .grp-icon,#sec-invoice-body .grp-icon,#sec-performance-body .grp-icon{color:rgba(181,212,244,.55)}
 #sec-performance-body .nav-item i{color:rgba(220,232,245,.75);opacity:1;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
 #sec-performance-body .nav-item:hover i{transform:scale(1.18) rotate(-8deg)}
 #sec-performance-body .nav-item,#sec-milestone-body .nav-item,#sec-invoice-body .nav-item{padding:7px 12px 7px 14px;color:rgba(181,212,244,.6);font-size:12px}
@@ -705,7 +705,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       <div class="nav-section-divider"></div>
 
       <!-- Job: Revenue, Cost & Profit -->
-      <div class="nav-section-hdr performance" id="sec-performance-hdr" onclick="toggleSection('performance')">
+      <div class="nav-section-hdr pendency" id="sec-performance-hdr" onclick="toggleSection('performance')">
         <i class="ti ti-report-money" style="font-size:10px"></i>Job: Revenue, Cost &amp; Profit
         <i class="ti ti-chevron-down sec-chev"></i>
       </div>
@@ -740,7 +740,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       <div class="nav-section-divider"></div>
 
       <!-- Invoice & Credit Note -->
-      <div class="nav-section-hdr performance" id="sec-invoice-hdr" onclick="toggleSection('invoice')">
+      <div class="nav-section-hdr pendency" id="sec-invoice-hdr" onclick="toggleSection('invoice')">
         <i class="ti ti-file-invoice" style="font-size:10px"></i>Invoice &amp; Credit Note
         <i class="ti ti-chevron-down sec-chev"></i>
       </div>

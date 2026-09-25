@@ -8637,7 +8637,7 @@ function renderSummary() {
     renderPage(mappedId || pageId);
   };
 
-  window._sumSort = 'high';
+  if (!window._sumSort) window._sumSort = 'high'; // init only once
   window.setSumSort = function(val) {
     window._sumSort = val;
     renderSummary();

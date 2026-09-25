@@ -4343,15 +4343,13 @@ function initSections() {
   const summaryBody = document.getElementById('sec-summary-body');
   if (summaryBody) { summaryBody.style.maxHeight = '9999px'; summaryBody.dataset.open = '1'; }
 
-  const pendencyBody = document.getElementById('sec-pendency-body');
-  const pendencyHdr = document.getElementById('sec-pendency-hdr');
-  if (pendencyBody) { pendencyBody.style.maxHeight = '0'; pendencyBody.dataset.open = '0'; }
-  if (pendencyHdr) pendencyHdr.classList.add('sec-collapsed');
-
-  const perfBody = document.getElementById('sec-performance-body');
-  const perfHdr = document.getElementById('sec-performance-hdr');
-  if (perfBody) { perfBody.style.maxHeight = '0'; perfBody.dataset.open = '0'; }
-  if (perfHdr) perfHdr.classList.add('sec-collapsed');
+  // Collapse all sections by default
+  ['pendency','performance','milestone','invoice'].forEach(id => {
+    const body = document.getElementById('sec-' + id + '-body');
+    const hdr  = document.getElementById('sec-' + id + '-hdr');
+    if (body) { body.style.maxHeight = '0'; body.dataset.open = '0'; }
+    if (hdr)  hdr.classList.add('sec-collapsed');
+  });
 }
 
 // ── SIDEBAR SEARCH ──────────────────────────────────────────

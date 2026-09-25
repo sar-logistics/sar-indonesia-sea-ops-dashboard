@@ -8438,14 +8438,13 @@ function renderSummary() {
 
   const { cols, label, view } = getColumns(pageId);
   const filtered  = applyDropdownFilters(filterByDate(allSRR, pageId), pageId);
-  const filtered = applyDropdownFilters(filterByDate(allSRR, pageId), pageId);
   populateFilters(pageId, filtered);
 
   if (!cols.length) { container.innerHTML = '<div style="padding:40px;color:#94a3b8;text-align:center">No data for the selected period.</div>'; return; }
 
   // ── Compute per-report stats ──────────────────────────────────────────────
   const reportStats = SUMMARY_REPORTS.map(report => {
-    let data = report.source === 'jpa' ? filtered : filtered;
+    let data = filtered;
     if (report.pre) data = data.filter(report.pre);
     const colKeyFn = r => getColKey(r, view);
     const totals = {}, flags = {};

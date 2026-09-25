@@ -50,8 +50,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 .tb-logo-wrap{display:none}
 .tb-divider{display:none}
 .tb-title-wrap{display:flex;flex-direction:column;justify-content:center}
-.tb-title{font-size:13px;font-weight:600;color:#fff;line-height:1.2}
-.tb-subtitle{font-size:10px;color:#B5D4F4;line-height:1.2}
+.tb-title{font-size:15px;font-weight:700;color:#fff;line-height:1.2}
+.tb-subtitle{font-size:11px;color:#B5D4F4;line-height:1.2;font-weight:500}
 .tb-spacer{flex:1}
 .tb-live{display:inline-flex;align-items:center;gap:5px;background:rgba(99,153,34,.2);border:1px solid rgba(99,153,34,.4);border-radius:20px;padding:4px 10px;font-size:11px;color:#C0DD97;font-weight:500}
 .tb-live-dot{width:7px;height:7px;background:#97C459;border-radius:50%;animation:blink 2s infinite;flex-shrink:0;box-shadow:0 0 6px rgba(151,196,89,.6)}
@@ -785,7 +785,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       <div class="tb-divider"></div>
       <div class="tb-title-wrap">
         <div class="tb-title">SAR Logistics · Indonesia</div>
-        <div class="tb-subtitle">Sea Ops · Indonesia</div>
+        <div class="tb-subtitle" id="tb-direction-label">Sea Ops · Export</div>
       </div>
     </div>
     <div class="tb-divider"></div>
@@ -8613,6 +8613,9 @@ function renderSummary() {
   // ── EXPORT / IMPORT DIRECTION TOGGLE ─────────────────────
   window.setDirection = function(dir) {
     currentDirection = dir;
+    // Update subtitle label
+    const lbl = document.getElementById('tb-direction-label');
+    if (lbl) lbl.textContent = 'Sea Ops · ' + dir;
     // Update button styles
     const expBtn = document.getElementById('dir-export');
     const impBtn = document.getElementById('dir-import');

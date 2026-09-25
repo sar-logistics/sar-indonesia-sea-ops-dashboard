@@ -681,7 +681,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       <div class="sidebar-nav-scroll">
       <!-- Summary at top -->
       <div id="sec-summary-body" style="display:block;max-height:none!important">
-        <div class="nav-item active" data-tooltip="Summary — Overall dashboard overview" onclick="setPage('summary','Summary','Summary',this)">
+        <div class="nav-item" data-tooltip="Summary — Overall dashboard overview" onclick="setPage('summary','Summary','Summary',this)" id="nav-summary">
           <i class="ti ti-layout-dashboard"></i><span class="nav-item-label">Summary</span>
         </div>
       </div>
@@ -4703,7 +4703,7 @@ function setPage(pageId, title, group, el) {
   if (pageId === 'teams') renderTeams();
   if (pageId === 'usage') loadUsageAnalytics();
   // Render report pages lazily — only when the user actually navigates to them
-  const reportPages = ['job-unlinked','ol-delay','open-jobs','total-jobs','unbilled-rev','unposted-cost','low-profit','inv-delay','ams','hbl-not-released','mbl-not-released','pre-alert-delay','si-not-submitted','vendor-payment-delay','sob-blank','mbl-type-blank','hbl-type-blank','mbl-col-hbl-pre','mbl-col-hbl-col','mbl-pre-hbl-pre','mbl-pre-hbl-col','perf-ol','perf-hbl','perf-mbl','perf-prealert','perf-inv','perf-si','perf-vendor-payment','summary'];
+  const reportPages = ['job-unlinked','ol-delay','open-jobs','total-jobs','unbilled-rev','unposted-cost','low-profit','inv-delay','ams','hbl-not-released','mbl-not-released','pre-alert-delay','si-not-submitted','vendor-payment-delay','sob-blank','mbl-type-blank','hbl-type-blank','mbl-col-hbl-pre','mbl-col-hbl-col','mbl-pre-hbl-pre','mbl-pre-hbl-col','perf-ol','perf-hbl','perf-mbl','perf-prealert','perf-inv','perf-si','perf-vendor-payment','summary','revenue-not-billed','cost-not-posted','job-profit','hbl-release','mbl-release','invoice-not-raised'];
   if (reportPages.includes(pageId) && allSRR.length) renderPage(pageId);
   logUsage(pageId);
   setTimeout(convertAllSelects, 50);

@@ -5377,8 +5377,8 @@ function renderTotalJobs() {
   // Build totalMap: branch → owner → col counts
   const totalMap = {};
   filtered.forEach(r => {
-    const br = r.branch   || '(No Branch)';
-    const ow = r.jobOwner || '(Unknown)';
+    const br = r.jobBranch || r.branch   || '(No Branch)';
+    const ow = r.operator  || r.jobOwner || '(Unknown)';
     const ck = getColKey(r, view) || 'other';
     if (!totalMap[br]) totalMap[br] = {};
     if (!totalMap[br][ow]) totalMap[br][ow] = {};

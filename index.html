@@ -1221,7 +1221,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div class="kpi orange">
             <div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Open Jobs</span></div>
             <div class="kpi-val orange" id="kv-oj-flagged">—</div>
-            <div class="kpi-sub">Operations Locked On is blank</div>
+            <div class="kpi-sub">Jobs not CMP or CLS</div>
           </div>
           <div class="kpi red">
             <div class="kpi-top"><i class="kpi-icon-sm ti ti-percentage red"></i><span class="kpi-lbl">% of such jobs</span></div>
@@ -1231,7 +1231,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
         </div>
 
         <div class="sec-hd">
-          <div class="sec-title">Branch › Job Owner — Open Jobs (Operations Locked On is blank)</div>
+          <div class="sec-title">Branch › Job Owner — Open Jobs (Status not CMP or CLS)</div>
           <div style="display:flex;align-items:center;gap:6px">
             <div class="sec-ct" id="sc-open-jobs">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
@@ -4695,7 +4695,7 @@ function setPage(pageId, title, group, el) {
       if (prevPage) prevPage.insertBefore(prev, prevPage.firstChild);
     }
     filterRow.innerHTML = '';
-    const activeFilter = document.getElementById('filterbar-' + pageId);
+    const activeFilter = document.getElementById('filterbar-' + (pageIdMap[pageId] || pageId));
     if (activeFilter) {
       activeFilter.dataset.pageId = pageId;
       filterRow.appendChild(activeFilter);
@@ -4714,7 +4714,17 @@ function setPage(pageId, title, group, el) {
     });
   }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + pageId).classList.add('active');
+  // Map Indonesia page IDs to existing div IDs
+  const pageIdMap = {
+    'revenue-not-billed': 'unbilled-rev',
+    'cost-not-posted':    'unposted-cost',
+    'job-profit':         'low-profit',
+    'hbl-release':        'hbl-not-released',
+    'mbl-release':        'mbl-not-released',
+    'invoice-not-raised': 'inv-delay',
+  };
+  const divId = pageIdMap[pageId] || pageId;
+  document.getElementById('page-' + divId).classList.add('active');
   document.getElementById('tbTitle').textContent = title;
   document.getElementById('tbGroup').textContent = group;
   if (pageId === 'admin') loadAdminPanel();
@@ -5340,35 +5350,16 @@ function toggleRows(key, event) {
 }
 
 function renderPage(pageId) {
-  if (pageId === 'job-unlinked')       renderJobUnlinked();
-  if (pageId === 'ol-delay')           renderOLDelay();
-  if (pageId === 'open-jobs')          renderOpenJobs();
+  // ── Indonesia Ops — 8 pages only ──────────────────────────
+  if (pageId === 'summary')            renderSummary();
   if (pageId === 'total-jobs')         renderTotalJobs();
-  if (pageId === 'unbilled-rev')       renderUnbilledRev();
-  if (pageId === 'unposted-cost')      renderUnpostedCost();
-  if (pageId === 'low-profit')         renderLowProfit();
-  if (pageId === 'inv-delay')          renderInvDelay();
-  if (pageId === 'ams')                renderAMS();
-  if (pageId === 'hbl-not-released')   renderHblNotReleased();
-  if (pageId === 'mbl-not-released')   renderMblNotReleased();
-  if (pageId === 'pre-alert-delay')    renderPreAlertDelay();
-  if (pageId === 'si-not-submitted')    renderSiNotSubmitted();
-  if (pageId === 'vendor-payment-delay') renderVendorPaymentDelay();
-  if (pageId === 'sob-blank')            renderSobBlank();
-  if (pageId === 'mbl-type-blank')      renderMblTypeBlank();
-  if (pageId === 'hbl-type-blank')      renderHblTypeBlank();
-  if (pageId === 'mbl-col-hbl-pre')    renderMblColHblPre();
-  if (pageId === 'mbl-col-hbl-col')    renderMblColHblCol();
-  if (pageId === 'mbl-pre-hbl-pre')    renderMblPreHblPre();
-  if (pageId === 'mbl-pre-hbl-col')    renderMblPreHblCol();
-  if (pageId === 'perf-ol')             renderPerfOL();
-  if (pageId === 'perf-hbl')            renderPerfHBL();
-  if (pageId === 'perf-mbl')            renderPerfMBL();
-  if (pageId === 'perf-prealert')       renderPerfPreAlert();
-  if (pageId === 'perf-inv')            renderPerfInv();
-  if (pageId === 'perf-si')              renderPerfSI();
-  if (pageId === 'perf-vendor-payment')  renderPerfVendorPayment();
-  if (pageId === 'summary')             renderSummary();
+  if (pageId === 'open-jobs')          renderOpenJobs();
+  if (pageId === 'revenue-not-billed') renderUnbilledRev();
+  if (pageId === 'cost-not-posted')    renderUnpostedCost();
+  if (pageId === 'job-profit')         renderLowProfit();
+  if (pageId === 'hbl-release')        renderHblNotReleased();
+  if (pageId === 'mbl-release')        renderMblNotReleased();
+  if (pageId === 'invoice-not-raised') renderInvDelay();
 }
 
 // ── RENDER: Total Jobs Created ────────────────────────────────
@@ -5463,15 +5454,7 @@ function renderOpenJobs() {
   const filtered  = filterByDate(allSRR, pageId);
   let filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
 
-  // Only include shipments where ATD/ETD/Shipment Date is at least 7 days old
-  // (Today − 7 days) — very recent shipments haven't had time to be closed yet
-  const cutoff = Date.now() - 7 * 86400000;
-  filteredDD = filteredDD.filter(r => {
-    const dep = r.atd || r.etd || r.shipmentDate;
-    return dep && new Date(dep).getTime() <= cutoff;
-  });
-
-  const flaggedDD  = filteredDD.filter(r => !r.operationsLockedOn || r.operationsLockedOn === '');
+  const flaggedDD = filteredDD.filter(r => !['CMP','CLS'].includes((r.jobStatus||'').toUpperCase()));
 
   const totalJobs    = filteredDD.length;
   const flaggedCount = flaggedDD.length;
@@ -5494,7 +5477,7 @@ function renderOpenJobs() {
   // Build flaggedMap only
   const flaggedMap = {};
   flaggedDD.forEach(r => {
-    const br=r.branch||'(No Branch)', ow=r.jobOwner||'(Unknown)', ck=getColKey(r,view)||'other';
+    const br=r.jobBranch||r.branch||'(No Branch)', ow=r.operator||r.jobOwner||'(Unknown)', ck=getColKey(r,view)||'other';
     if (!flaggedMap[br]) flaggedMap[br]={};
     if (!flaggedMap[br][ow]) flaggedMap[br][ow]={};
     flaggedMap[br][ow][ck]=(flaggedMap[br][ow][ck]||0)+1;
@@ -5518,7 +5501,7 @@ function renderOpenJobs() {
 
   Object.keys(flaggedMap).sort().forEach((br,bi)=>{
     const bKey='oj'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let bFG=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); bFG+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -5527,7 +5510,7 @@ function renderOpenJobs() {
     h+=`<tr class="br-row"><td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>${bF}${colCells(brFl,brFlagRecs,cols,colKeyFn,safeBr+' — Open Jobs',label)}</tr>`;
     Object.keys(owMap).sort().forEach((ow,oi)=>{
       const owKey=bKey+'o'+oi, owC=owMap[ow]||{};
-      const owFRecs=brFlagRecs.filter(r=>(r.jobOwner||'(Unknown)')===ow);
+      const owFRecs=brFlagRecs.filter(r=>(r.operator||r.jobOwner||'(Unknown)')===ow);
       const owFlId=dvReg(owFRecs), safeOw=ow.replace(/'/g,"\\'");
       let oFG=0; cols.forEach(c=>{oFG+=(owC[c.key]||0);});
       const oav=`<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
@@ -5536,7 +5519,7 @@ function renderOpenJobs() {
     });
   });
 
-  if(!Object.keys(flaggedMap).length) h='<tr><td colspan="99" style="text-align:center;padding:32px;color:var(--text3)">No open jobs for this period.</td></tr>';
+  if(!Object.keys(flaggedMap).length) h='<tr><td colspan="99" style="text-align:center;padding:32px;color:var(--text3)">No open jobs for this period. ✅</td></tr>';
   const tbody=document.getElementById('tbody-open-jobs'); if(tbody)tbody.innerHTML=h;
 }
 function renderOLDelay() {
@@ -5580,7 +5563,7 @@ function renderOLDelay() {
   // Build flaggedMap only
   const flaggedMap = {};
   flaggedDD.forEach(r => {
-    const br=r.branch||'(No Branch)', ow=r.jobOwner||'(Unknown)', ck=getColKey(r,view)||'other';
+    const br=r.jobBranch||r.branch||'(No Branch)', ow=r.operator||r.jobOwner||'(Unknown)', ck=getColKey(r,view)||'other';
     if (!flaggedMap[br]) flaggedMap[br] = {};
     if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
     flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck]||0)+1;
@@ -5606,7 +5589,7 @@ function renderOLDelay() {
 
   Object.keys(flaggedMap).sort().forEach((br,bi) => {
     const bKey='ol'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let brFlGrand=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); brFlGrand+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -5618,7 +5601,7 @@ function renderOLDelay() {
     </tr>`;
     Object.keys(owMap).sort().forEach((ow,oi) => {
       const owKey=bKey+'o'+oi, owCols=owMap[ow]||{};
-      const owFRecs=brFlagRecs.filter(r=>(r.jobOwner||'(Unknown)')===ow);
+      const owFRecs=brFlagRecs.filter(r=>(r.operator||r.jobOwner||'(Unknown)')===ow);
       const owFlId=dvReg(owFRecs), safeOw=ow.replace(/'/g,"\\'");
       let owFlGrand=0; cols.forEach(c=>{owFlGrand+=(owCols[c.key]||0);});
       const oav=`<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
@@ -5731,7 +5714,7 @@ function renderAMS() {
 
   Object.keys(flaggedMap).sort().forEach((br,bi)=>{
     const bKey='ams'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let bFG=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); bFG+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -5740,7 +5723,7 @@ function renderAMS() {
     h+=`<tr class="br-row"><td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>${bF}${colCells(brFl,brFlagRecs,cols,colKeyFn,safeBr+' — Flagged',label)}</tr>`;
     Object.keys(owMap).sort().forEach((ow,oi)=>{
       const owKey=bKey+'o'+oi, owC=owMap[ow]||{};
-      const owFRecs=brFlagRecs.filter(r=>(r.jobOwner||'(Unknown)')===ow);
+      const owFRecs=brFlagRecs.filter(r=>(r.operator||r.jobOwner||'(Unknown)')===ow);
       const owFlId=dvReg(owFRecs), safeOw=ow.replace(/'/g,"\\'");
       let oFG=0; cols.forEach(c=>{oFG+=(owC[c.key]||0);});
       const oav=`<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
@@ -5763,13 +5746,13 @@ function renderInvDelay() {
   populateFilters(pageId, filtered);
   const filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
 
-  // Flag: Billing date blank AND (Today - SOB) > 3 days
+  // Flag: Invoice date blank AND (Today - ETD/SOB) > 3 days
   const today = Date.now();
   const flaggedDD = filteredDD.filter(r => {
-    if (r.billingDate) return false;
-    const depDate = r.atd || r.etd;
-    if (!depDate) return false;
-    return Math.floor((today - new Date(depDate).getTime()) / 86400000) > 3;
+    const sob = r.etdDate ? new Date(r.etdDate) : null;
+    if (!sob) return false;
+    const diffDays = (today - sob.getTime()) / 86400000;
+    return diffDays > 3 && (!r.invoiceDate || r.invoiceDate === null);
   });
 
   const totalJobs    = filteredDD.length;
@@ -5811,7 +5794,7 @@ function renderInvDelay() {
 
   Object.keys(flaggedMap).sort().forEach((br,bi)=>{
     const bKey='id'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let bFG=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); bFG+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -5820,7 +5803,7 @@ function renderInvDelay() {
     h+=`<tr class="br-row"><td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>${bF}${colCells(brFl,brFlagRecs,cols,colKeyFn,safeBr+' — Flagged',label)}</tr>`;
     Object.keys(owMap).sort().forEach((ow,oi)=>{
       const owKey=bKey+'o'+oi, owC=owMap[ow]||{};
-      const owFRecs=brFlagRecs.filter(r=>(r.jobOwner||'(Unknown)')===ow);
+      const owFRecs=brFlagRecs.filter(r=>(r.operator||r.jobOwner||'(Unknown)')===ow);
       const owFlId=dvReg(owFRecs), safeOw=ow.replace(/'/g,"\\'");
       let oFG=0; cols.forEach(c=>{oFG+=(owC[c.key]||0);});
       const oav=`<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
@@ -5839,19 +5822,17 @@ function renderUnbilledRev() {
   const { cols, label, view } = getColumns(pageId);
   const _kpiRow = document.querySelector('#page-unbilled-rev .kpi-row');
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
-  const filtered   = filterByDateJPA(allJPA, pageId);
+  const filtered   = filterByDate(allSRR, pageId);
   populateFilters(pageId, filtered);
   const filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
   const today = Date.now();
   const flaggedDD  = filteredDD.filter(r => {
-    if (!r.unbilledRevenue) return false;  // blank
-    if (r.unbilledRevenue <= 100) return false;  // exclude negative values and 0–100
-    if (r.financialLock) return false;
-    const dep = r.atd || r.etd || r.jobDate;
-    if (!dep) return false;
-    return Math.floor((today - new Date(dep).getTime()) / 86400000) > 3;
+    const sob = r.etdDate ? new Date(r.etdDate) : null;
+    if (!sob) return false;
+    const diffDays = (today - sob.getTime()) / 86400000;
+    return diffDays > 3 && (!r.recognizedRevenue || r.recognizedRevenue === 0);
   });
-  _renderJPAFlaggedReport(pageId, 'ur', 'Unbilled Revenue', label, view, cols, filteredDD, flaggedDD);
+  _renderSRRFlagged(pageId, 'ur', 'Revenue Not Billed', label, view, cols, filteredDD, flaggedDD);
 }
 
 // ── RENDER: Cost not posted within 7 days of SOB ────────────────────────
@@ -5860,18 +5841,17 @@ function renderUnpostedCost() {
   const { cols, label, view } = getColumns(pageId);
   const _kpiRow = document.querySelector('#page-unposted-cost .kpi-row');
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
-  const filtered   = filterByDateJPA(allJPA, pageId);
+  const filtered   = filterByDate(allSRR, pageId);
   populateFilters(pageId, filtered);
   const filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
   const today = Date.now();
   const flaggedDD  = filteredDD.filter(r => {
-    if (!r.unpostedCost || r.unpostedCost === 0) return false;  // blank or zero
-    if (r.financialLock) return false;
-    const dep = r.atd || r.etd || r.jobDate;
-    if (!dep) return false;
-    return Math.floor((today - new Date(dep).getTime()) / 86400000) > 7;
+    const sob = r.etdDate ? new Date(r.etdDate) : null;
+    if (!sob) return false;
+    const diffDays = (today - sob.getTime()) / 86400000;
+    return diffDays > 7 && (!r.recognizedCost || r.recognizedCost === 0);
   });
-  _renderJPAFlaggedReport(pageId, 'uc', 'Unposted Cost', label, view, cols, filteredDD, flaggedDD);
+  _renderSRRFlagged(pageId, 'uc', 'Cost Not Posted', label, view, cols, filteredDD, flaggedDD);
 }
 
 // ── Shared JPA flagged report renderer ───────────────────────
@@ -5894,7 +5874,7 @@ function _renderJPAFlaggedReport(pageId, s, flagLabel, label, view, cols, filter
   const flaggedMap = {};
   const colKeyFn = r => getColKeyJPA(r, view) || 'other';
   flaggedDD.forEach(r => {
-    const br = r.branch||'(No Branch)', ow = r.jobOwner||'(Unknown)', ck = colKeyFn(r);
+    const br = r.jobBranch||r.branch||'(No Branch)', ow = r.operator||r.jobOwner||'(Unknown)', ck = colKeyFn(r);
     if (!flaggedMap[br]) flaggedMap[br] = {};
     if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
     flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck] || 0) + 1;
@@ -5945,11 +5925,16 @@ function renderLowProfit() {
   // Hide/show scorecards and grand total based on view
   const _kpiRow = document.querySelector('#page-low-profit .kpi-row');
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
-  const filtered  = filterByDateJPA(allJPA, pageId);
+  const filtered  = filterByDate(allSRR, pageId);
 
   populateFilters(pageId, filtered);
   const filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
-  const flaggedDD  = filteredDD.filter(r => r.flagLowProfit);
+  const flaggedDD  = filteredDD.filter(r => {
+    const rev = r.recognizedRevenue || 0;
+    const profit = r.jobProfit || 0;
+    if (rev === 0) return false;
+    return (profit / rev) * 100 < 3;
+  });
 
   const totalJobs    = filteredDD.length;
   const flaggedCount = flaggedDD.length;
@@ -5970,10 +5955,10 @@ function renderLowProfit() {
   // Build flaggedMap only
   const flaggedMap = {};
   function addMap(map, br, ow, ck) { if(!map[br])map[br]={}; if(!map[br][ow])map[br][ow]={}; map[br][ow][ck]=(map[br][ow][ck]||0)+1; }
-  flaggedDD.forEach(r => addMap(flaggedMap, r.branch||'(No Branch)', r.jobOwner||'(Unknown)', getColKeyJPA(r,view)||'other'));
+  flaggedDD.forEach(r => addMap(flaggedMap, r.jobBranch||'(No Branch)', r.operator||'(Unknown)', getColKey(r,view)||'other'));
 
   const gtFl={}; cols.forEach(c=>{gtFl[c.key]=0;}); let gtFlGrand=0;
-  const colKeyFn = r => getColKeyJPA(r,view)||'other';
+  const colKeyFn = r => getColKey(r,view)||'other';
   const colRecFl={};
   flaggedDD.forEach(r=>{ const ck=colKeyFn(r); if(gtFl[ck]!==undefined)gtFl[ck]++; gtFlGrand++; if(!colRecFl[ck])colRecFl[ck]=[]; colRecFl[ck].push(r); });
 
@@ -5994,7 +5979,7 @@ function renderLowProfit() {
 
   Object.keys(flaggedMap).sort().forEach((br,bi) => {
     const bKey='lp'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let brFlGrand=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); brFlGrand+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -6006,7 +5991,7 @@ function renderLowProfit() {
     </tr>`;
     Object.keys(owMap).sort().forEach((ow,oi) => {
       const owKey=bKey+'o'+oi, owCols=owMap[ow]||{};
-      const owFRecs=brFlagRecs.filter(r=>(r.jobOwner||'(Unknown)')===ow);
+      const owFRecs=brFlagRecs.filter(r=>(r.operator||r.jobOwner||'(Unknown)')===ow);
       const owFlId=dvReg(owFRecs), safeOw=ow.replace(/'/g,"\\'");
       let owFlGrand=0; cols.forEach(c=>{owFlGrand+=(owCols[c.key]||0);});
       const oav=`<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
@@ -8219,7 +8204,7 @@ function _renderSRRFlagged(pageId, s, flagLabel, label, view, cols, filteredDD, 
   const flaggedMap = {};
   const colKeyFn = r => getColKey(r, view) || 'other';
   flaggedDD.forEach(r => {
-    const br = r.branch||'(No Branch)', ow = r.jobOwner||'(Unknown)', ck = colKeyFn(r);
+    const br = r.jobBranch||r.branch||'(No Branch)', ow = r.operator||r.jobOwner||'(Unknown)', ck = colKeyFn(r);
     if (!flaggedMap[br]) flaggedMap[br] = {};
     if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
     flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck]||0) + 1;
@@ -8236,7 +8221,7 @@ function _renderSRRFlagged(pageId, s, flagLabel, label, view, cols, filteredDD, 
   <tr class="gt-sep"><td colspan="${cols.length+(isSingle?1:2)}"></td></tr>`;
   Object.keys(flaggedMap).sort().forEach((br,bi) => {
     const bKey=s+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let brFlGrand=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); brFlGrand+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -8245,7 +8230,7 @@ function _renderSRRFlagged(pageId, s, flagLabel, label, view, cols, filteredDD, 
     h+=`<tr class="br-row"><td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>${bFtd}${colCells(brFl,brFlagRecs,cols,colKeyFn,safeBr+' — '+flagLabel,label)}</tr>`;
     Object.keys(owMap).sort().forEach((ow,oi)=>{
       const owKey=bKey+'o'+oi, owCols=owMap[ow]||{};
-      const owFRecs=brFlagRecs.filter(r=>(r.jobOwner||'(Unknown)')===ow);
+      const owFRecs=brFlagRecs.filter(r=>(r.operator||r.jobOwner||'(Unknown)')===ow);
       const owFlId=dvReg(owFRecs), safeOw=ow.replace(/'/g,"\\'");
       let owFlGrand=0; cols.forEach(c=>{owFlGrand+=(owCols[c.key]||0);});
       const oav=`<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
@@ -8265,10 +8250,10 @@ function renderHblNotReleased() {
   const filteredDD=applyAdditionalFilters(applyDropdownFilters(filtered,pageId),pageId);
   const today=Date.now();
   const flaggedDD=filteredDD.filter(r => {
-    if (r.hblReleased) return false;
-    if ((r.consolType||'').trim() === 'Direct') return false;  // exclude Direct consol type
-    const dep=r.atd||r.etd||r.shipmentDate; if(!dep) return false;
-    return Math.floor((today-new Date(dep).getTime())/86400000)>7;
+    const sob = r.etdDate ? new Date(r.etdDate) : null;
+    if (!sob) return false;
+    const diffDays = (today - sob.getTime()) / 86400000;
+    return diffDays > 7 && (!r.hblReleasedDate || r.hblReleasedDate === null);
   });
   _renderSRRFlagged(pageId,'hnr','HBL Not Released',label,view,cols,filteredDD,flaggedDD);
 }
@@ -8281,9 +8266,10 @@ function renderMblNotReleased() {
   const filteredDD=applyAdditionalFilters(applyDropdownFilters(filtered,pageId),pageId);
   const today=Date.now();
   const flaggedDD=filteredDD.filter(r => {
-    if (r.mblReleased) return false;
-    const dep=r.atd||r.etd||r.shipmentDate; if(!dep) return false;
-    return Math.floor((today-new Date(dep).getTime())/86400000)>7;
+    const sob = r.etdDate ? new Date(r.etdDate) : null;
+    if (!sob) return false;
+    const diffDays = (today - sob.getTime()) / 86400000;
+    return diffDays > 7 && (!r.mblReleasedDate || r.mblReleasedDate === null);
   });
   _renderSRRFlagged(pageId,'mnr','MBL Not Released',label,view,cols,filteredDD,flaggedDD);
 }
@@ -8377,7 +8363,7 @@ function _renderMblHbl(pageId, title, mblVal, hblVal) {
   const colKeyFn = r => getColKey(r, view) || 'other';
   const totalMap = {};
   matchedDD.forEach(r => {
-    const br = r.branch||'(No Branch)', ow = r.jobOwner||'(Unknown)', ck = colKeyFn(r);
+    const br = r.jobBranch||r.branch||'(No Branch)', ow = r.operator||r.jobOwner||'(Unknown)', ck = colKeyFn(r);
     if (!totalMap[br]) totalMap[br] = {};
     if (!totalMap[br][ow]) totalMap[br][ow] = {};
     totalMap[br][ow][ck] = (totalMap[br][ow][ck]||0) + 1;

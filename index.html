@@ -4653,6 +4653,15 @@ function initGroups() {
 }
 
 function setPage(pageId, title, group, el) {
+  // Map Indonesia page IDs to existing HTML div IDs
+  const pageIdMap = {
+    'revenue-not-billed': 'unbilled-rev',
+    'cost-not-posted':    'unposted-cost',
+    'job-profit':         'low-profit',
+    'hbl-release':        'hbl-not-released',
+    'mbl-release':        'mbl-not-released',
+    'invoice-not-raised': 'inv-delay',
+  };
   document.querySelectorAll('.nav-item,.sys-item,.reports-label').forEach(n => n.classList.remove('active'));
   if (el) el.classList.add('active');
   clearSidebarSearch();
@@ -4663,13 +4672,15 @@ function setPage(pageId, title, group, el) {
     // Restore any previously moved filter bar back to its page
     const prev = filterRow.querySelector('.filter-bar');
     if (prev && prev.dataset.pageId) {
-      const prevPage = document.getElementById('page-' + prev.dataset.pageId);
+      const prevDivId = pageIdMap[prev.dataset.pageId] || prev.dataset.pageId;
+      const prevPage = document.getElementById('page-' + prevDivId);
       if (prevPage) prevPage.insertBefore(prev, prevPage.firstChild);
     }
     filterRow.innerHTML = '';
     const activeFilter = document.getElementById('filterbar-' + (pageIdMap[pageId] || pageId));
     if (activeFilter) {
       activeFilter.dataset.pageId = pageId;
+      activeFilter.dataset.divId = pageIdMap[pageId] || pageId;
       filterRow.appendChild(activeFilter);
       activeFilter.style.display = 'flex';
       activeFilter.style.marginBottom = '0';
@@ -4687,14 +4698,6 @@ function setPage(pageId, title, group, el) {
   }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   // Map Indonesia page IDs to existing div IDs
-  const pageIdMap = {
-    'revenue-not-billed': 'unbilled-rev',
-    'cost-not-posted':    'unposted-cost',
-    'job-profit':         'low-profit',
-    'hbl-release':        'hbl-not-released',
-    'mbl-release':        'mbl-not-released',
-    'invoice-not-raised': 'inv-delay',
-  };
   const divId = pageIdMap[pageId] || pageId;
   document.getElementById('page-' + divId).classList.add('active');
   document.getElementById('tbTitle').textContent = title;

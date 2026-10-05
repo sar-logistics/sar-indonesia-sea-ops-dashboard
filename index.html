@@ -6128,7 +6128,17 @@ function renderOpenJobs() {
   const filtered  = filterByDate(allSRR, pageId);
   let filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
 
-  const flaggedDD = filteredDD.filter(r => !['CMP','CLS'].includes((r.jobStatus||'').toUpperCase()));
+  // Only show open jobs whose ETD is older than 7 days — jobs shipped
+  // within the last 7 days are expected to still be open, that's normal
+  const ojCutoff = new Date();
+  ojCutoff.setHours(0,0,0,0);
+  ojCutoff.setDate(ojCutoff.getDate() - 7);
+
+  const flaggedDD = filteredDD.filter(r => {
+    if (['CMP','CLS'].includes((r.jobStatus||'').toUpperCase())) return false;
+    const etd = r.etdDate ? new Date(r.etdDate) : null;
+    return etd && etd < ojCutoff;
+  });
 
   const totalJobs    = filteredDD.length;
   const flaggedCount = flaggedDD.length;

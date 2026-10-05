@@ -8796,6 +8796,18 @@ function closeAddUserModal() {
 }
 function onNewRoleChange() { /* could filter reporting mgr list */ }
 
+// Refresh just the users list from the server so Add/Edit/Toggle/Delete
+// reflect instantly, instead of re-rendering the stale in-memory allUsers
+// array left over from the last full data load/refresh
+async function refreshAllUsers() {
+  try {
+    const r = await fetch(MONGO_API, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'find', collection:'users', filter:{}, limit:2000 }) });
+    const d = await r.json();
+    allUsers = d.documents || allUsers;
+  } catch(e) { console.error('[refreshAllUsers] failed:', e); }
+}
+
 async function saveNewUser() {
   const name   = (document.getElementById('newName')?.value || '').trim();
   const email  = (document.getElementById('newEmail')?.value || '').trim().toLowerCase();
@@ -8810,6 +8822,7 @@ async function saveNewUser() {
                $setOnInsert:{zones:[],branches:[],createdAt:new Date().toISOString()} }
     })
   });
+  await refreshAllUsers();
   closeAddUserModal();
   loadAdminPanel();
 }
@@ -8908,6 +8921,7 @@ async function saveEditUser() {
   await fetch(MONGO_API, { method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ action:'updateOne', collection:'users', filter:{email}, update:{$set:update} })
   });
+  await refreshAllUsers();
   closeEditUser();
   loadAdminPanel();
 }
@@ -8916,6 +8930,7 @@ async function toggleActive(email, active) {
   await fetch(MONGO_API, { method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ action:'updateOne', collection:'users', filter:{email}, update:{$set:{active}} })
   });
+  await refreshAllUsers();
   loadAdminPanel();
 }
 
@@ -8924,6 +8939,7 @@ async function confirmDeleteUser(email) {
   await fetch(MONGO_API, { method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ action:'deleteOne', collection:'users', filter:{email} })
   });
+  await refreshAllUsers();
   loadAdminPanel();
 }
 

@@ -5195,19 +5195,19 @@ function handleAuth() {
     },
     auto_select: false,
     cancel_on_tap_outside: true,
+    use_fedcm_for_prompt: true,
   });
 
-  google.accounts.id.prompt((notification) => {
-    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-      // Fallback: render Google button
-      document.getElementById('signinLoading').style.display = 'none';
-      document.getElementById('signinBtn').style.display = 'none';
-      google.accounts.id.renderButton(
-        document.getElementById('googleBtnContainer'),
-        { theme: 'outline', size: 'large', width: 280, text: 'continue_with' }
-      );
-    }
-  });
+  // Render the standard Google Sign-In button directly instead of relying on
+  // One Tap's prompt() notification.isNotDisplayed()/isSkippedMoment() status
+  // checks, which Google has deprecated and become unreliable once FedCM is
+  // mandatory - this avoids the GSI_LOGGER console warning entirely and is
+  // simpler: one reliable button instead of a prompt-then-fallback dance
+  document.getElementById('signinLoading').style.display = 'none';
+  google.accounts.id.renderButton(
+    document.getElementById('googleBtnContainer'),
+    { theme: 'outline', size: 'large', width: 280, text: 'continue_with' }
+  );
 }
 
 async function verifyUser(info) {

@@ -4371,12 +4371,12 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
         </div>
       </div>
       <div class="page" id="page-teams"><div class="ph-wrap"><i class="ti ti-users"></i><p>Loading teams…</p></div></div>
-      <div class="page" id="page-usage">
-        <div style="padding:20px 24px 0">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      <div class="page" id="page-usage" style="height:100%">
+        <div style="padding:20px 24px 0;height:100%;box-sizing:border-box;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;flex-shrink:0">
             <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.08em">📊 USAGE ANALYTICS</div>
           </div>
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-shrink:0">
             <div style="position:relative;flex:1;max-width:360px">
               <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px">🔍</span>
               <input id="usageSearch" placeholder="Search by name, email or role…" oninput="filterUsageTable(this.value)"
@@ -4387,7 +4387,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
               <i class="ti ti-file-spreadsheet" style="font-size:14px"></i> Export to Excel
             </button>
           </div>
-          <div class="tbl-wrap" style="overflow:auto">
+          <div class="tbl-wrap" style="overflow:auto;flex:1;min-height:0;max-height:none;margin-bottom:20px">
             <table id="usageTable" style="width:100%;border-collapse:collapse;font-size:12.5px">
               <thead>
                 <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">

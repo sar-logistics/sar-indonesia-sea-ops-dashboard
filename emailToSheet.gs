@@ -81,26 +81,36 @@ function processSyncSource(src) {
   try {
     const tempSS = SpreadsheetApp.openById(tempFileId);
 
-    // The source file has multiple tabs (Cover Note, Shipment Profile, Filter,
-    // Sort, Optional Templates, etc.) and the real data table doesn't always
-    // start on row 1 - there's a report title/filter-summary block stacked
-    // above it first. Rather than hardcode a tab name or row number (which
-    // shifted between Export/Import and could shift again), search every tab
-    // for the row containing "Shipment ID" - the one header we know for
-    // certain exists, since it's already the sheet's own first column - and
-    // use that as the anchor for both which tab and which row is the real
-    // header row.
-    const found = findShipmentDataTable(tempSS);
-    if (!found) {
-      Logger.log(src.label + ': ERROR - could not find a "Shipment ID" header row in any tab of this attachment. Tabs present: ' + tempSS.getSheets().map(s => s.getName()).join(', '));
+    // Confirmed directly against real data: the real table always lives on
+    // the "Shipment Profile" tab, headers on row 15, starting at column C
+    // (columns A/B are blank leader columns in the report template).
+    // Hardcoded per your confirmation rather than searched for, with one
+    // safety check so this doesn't silently write garbage if the report
+    // template ever shifts again.
+    const DATA_TAB_NAME  = 'Shipment Profile';
+    const HEADER_ROW     = 15;
+    const START_COLUMN   = 3; // C
+
+    const dataTab = tempSS.getSheetByName(DATA_TAB_NAME);
+    if (!dataTab) {
+      Logger.log(src.label + ': ERROR - tab "' + DATA_TAB_NAME + '" not found. Tabs present: ' + tempSS.getSheets().map(s => s.getName()).join(', '));
       return;
     }
-    Logger.log(src.label + ': found real data table on tab "' + found.sheetName + '", header row ' + found.headerRowNum + ', starting at column ' + (found.headerColIdx + 1) + (found.headerColIdx > 0 ? ' (' + found.headerColIdx + ' leading blank column(s) skipped)' : ''));
 
-    const data = found.data;
-    const newHeaders = data[found.headerRowNum - 1].map(h => String(h).trim());
-    const newRows = data.slice(found.headerRowNum).filter(row => row.some(cell => String(cell).trim() !== ''));
-    Logger.log(src.label + ': attachment has ' + newHeaders.length + ' columns, ' + newRows.length + ' data rows');
+    const fullData = dataTab.getDataRange().getValues().map(row => row.slice(START_COLUMN - 1));
+    if (fullData.length < HEADER_ROW) {
+      Logger.log(src.label + ': ERROR - "' + DATA_TAB_NAME + '" only has ' + fullData.length + ' rows, expected headers on row ' + HEADER_ROW);
+      return;
+    }
+
+    const headerCheck = String(fullData[HEADER_ROW - 1][0]).trim();
+    if (headerCheck !== 'Shipment ID') {
+      Logger.log(src.label + ': ⚠ WARNING - expected "Shipment ID" at row ' + HEADER_ROW + ', column ' + START_COLUMN + ' but found "' + headerCheck + '" instead. The report format may have shifted - check manually before trusting this run.');
+    }
+
+    const newHeaders = fullData[HEADER_ROW - 1].map(h => String(h).trim());
+    const newRows = fullData.slice(HEADER_ROW).filter(row => row.some(cell => String(cell).trim() !== ''));
+    Logger.log(src.label + ': attachment has ' + newHeaders.length + ' columns, ' + newRows.length + ' data rows (tab "' + DATA_TAB_NAME + '", header row ' + HEADER_ROW + ', from column ' + START_COLUMN + ')');
 
     const ss = SpreadsheetApp.openById(SYNC_SHEET_ID);
     const targetSheet = ss.getSheetByName(src.targetTab);
@@ -141,36 +151,6 @@ function processSyncSource(src) {
     // Clean up the temporary converted file regardless of outcome
     try { DriveApp.getFileById(tempFileId).setTrashed(true); } catch (e2) {}
   }
-}
-
-// Scans every tab of the converted spreadsheet for the row containing
-// "Shipment ID" (exact match after trim) in any cell - that row is the real
-// header row, and whichever tab it's on is the real data table. Returns
-// { sheetName, data, headerRowNum } (headerRowNum is 1-indexed, matching
-// actual sheet row numbers) or null if no tab has a matching row.
-function findShipmentDataTable(spreadsheet) {
-  const sheets = spreadsheet.getSheets();
-  const SCAN_DEPTH = 50; // report title/filter-summary blocks are never this tall
-  for (const sheet of sheets) {
-    const maxRow = Math.min(sheet.getLastRow(), SCAN_DEPTH);
-    if (maxRow < 1) continue;
-    const sample = sheet.getRange(1, 1, maxRow, sheet.getLastColumn()).getValues();
-    for (let r = 0; r < sample.length; r++) {
-      const colIdx = sample[r].findIndex(cell => String(cell).trim() === 'Shipment ID');
-      if (colIdx !== -1) {
-        // Found it - now pull the FULL data for this tab (not just the scan sample).
-        // Also record WHICH COLUMN "Shipment ID" sits in - the header row can
-        // have blank leading cells before it (a report-template quirk), and if
-        // those get included, every value ends up shifted right by that many
-        // columns relative to the target sheet's own headers. Every row gets
-        // sliced from this column onward so column 1 of what we return is
-        // always "Shipment ID" itself, with no leading blanks.
-        const fullData = sheet.getDataRange().getValues().map(row => row.slice(colIdx));
-        return { sheetName: sheet.getName(), data: fullData, headerRowNum: r + 1, headerColIdx: colIdx };
-      }
-    }
-  }
-  return null;
 }
 
 // Converts an .xlsx Blob to a temporary Google Sheet, returning its file ID.

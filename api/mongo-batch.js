@@ -17,10 +17,13 @@ async function getClient() {
 let cache = { data: null, builtAt: null };
 
 async function buildCache(db) {
-  console.log('[ID-OPS] Building cache...');
-  const allDocs = await db.collection('id_ops_shipments').find({}).toArray();
-  console.log(`[ID-OPS] Total docs: ${allDocs.length}`);
-  cache = { data: allDocs, builtAt: new Date().toISOString() };
+  console.log('[TH-OPS] Building cache...');
+  const expDocs  = await db.collection('th_ops_export').find({}).toArray();
+  const impDocs  = await db.collection('th_ops_import').find({}).toArray();
+  const userDocs = await db.collection('users').find({}).toArray();
+  const allDocs  = [...expDocs, ...impDocs];
+  console.log(`[TH-OPS] Total docs: ${allDocs.length}, users: ${userDocs.length}`);
+  cache = { data: allDocs, users: userDocs, builtAt: new Date().toISOString() };
   return cache;
 }
 
@@ -30,7 +33,6 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-batch-secret');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // ── PUSH from Apps Script ──────────────────────────────────────────────────
   if (req.method === 'POST') {
     const secret = req.headers['x-batch-secret'];
     if (!secret || secret !== SECRET) return res.status(401).json({ error: 'Unauthorized' });
@@ -38,29 +40,28 @@ export default async function handler(req, res) {
     const { action, records, direction } = req.body;
 
     if (action === 'wipe') {
-      const c   = await getClient();
-      const db  = c.db(DB);
-      const col = db.collection('id_ops_shipments');
-      const result = await col.deleteMany(direction ? { direction } : {});
+      const c  = await getClient();
+      const db = c.db(DB);
+      const colName = direction === 'Export' ? 'th_ops_export' : direction === 'Import' ? 'th_ops_import' : null;
+      if (!colName) return res.status(400).json({ error: 'Invalid direction' });
+      const result = await db.collection(colName).deleteMany({});
       cache = { data: null, builtAt: null };
-      return res.status(200).json({ deleted: result.deletedCount, direction: direction || 'all' });
+      return res.status(200).json({ deleted: result.deletedCount, direction });
     }
 
     if (action === 'push') {
       if (!records || !records.length) return res.status(400).json({ error: 'No records' });
-      const c   = await getClient();
-      const db  = c.db(DB);
-      const col = db.collection('id_ops_shipments');
-      await col.deleteMany({ direction }); // wipe this direction before inserting
-      const result = await col.insertMany(records, { ordered: false });
-      cache = { data: null, builtAt: null }; // bust cache
+      const c  = await getClient();
+      const db = c.db(DB);
+      const colName = direction === 'Export' ? 'th_ops_export' : 'th_ops_import';
+      const result = await db.collection(colName).insertMany(records, { ordered: false });
+      cache = { data: null, builtAt: null };
       return res.status(200).json({ inserted: result.insertedCount, direction });
     }
 
     return res.status(400).json({ error: 'Unknown action' });
   }
 
-  // ── GET — serve dashboard data ─────────────────────────────────────────────
   if (req.method === 'GET') {
     try {
       const now = new Date();
@@ -71,7 +72,7 @@ export default async function handler(req, res) {
       }
       res.setHeader('X-Cache', 'HIT');
       res.setHeader('X-Cache-Age', Math.floor((new Date() - new Date(cache.builtAt)) / 1000));
-      return res.status(200).json({ records: cache.data, builtAt: cache.builtAt });
+      return res.status(200).json({ records: cache.data, users: cache.users || [], builtAt: cache.builtAt });
     } catch (e) {
       console.error(e);
       return res.status(500).json({ error: e.message });

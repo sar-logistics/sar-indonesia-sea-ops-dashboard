@@ -454,7 +454,7 @@ function pushWip() {
 
 
 function masterPush() {
-  addLobCol();
+  addLobColumn();
   fillWipCols();
   wipeAndPushAll();
 }

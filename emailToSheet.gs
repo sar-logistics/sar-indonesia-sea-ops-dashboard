@@ -131,8 +131,21 @@ function processSyncSource(src) {
     const extraInEmail     = newHeaders.filter(h => existingHeaders.indexOf(h) === -1);
     if (derivedFound.length)     Logger.log(src.label + ': (expected) derived columns not touched by sync: ' + derivedFound.join(', '));
     if (missingFromEmail.length) Logger.log(src.label + ': ⚠ columns in the SHEET but missing from this email: ' + missingFromEmail.join(', '));
-    if (extraInEmail.length)     Logger.log(src.label + ': ⚠ columns in this email but not yet in the sheet: ' + extraInEmail.join(', '));
     if (!missingFromEmail.length && !extraInEmail.length) Logger.log(src.label + ': ✓ columns match exactly (aside from expected derived columns)');
+
+    // Self-healing: if the email has new trailing columns the sheet doesn't
+    // have a header for yet, add them now rather than just warning about it -
+    // otherwise their data writes in under a blank header every single run.
+    // Only handles columns added at the END (lastCol onward); a column
+    // inserted in the MIDDLE of the email's order would need a manual fix,
+    // since this script writes purely by position, not by matching names.
+    if (newHeaders.length > lastCol) {
+      const newColHeaders = newHeaders.slice(lastCol);
+      targetSheet.getRange(1, lastCol + 1, 1, newColHeaders.length).setValues([newColHeaders]);
+      Logger.log(src.label + ': + added ' + newColHeaders.length + ' new header column(s) to the sheet: ' + newColHeaders.join(', '));
+    } else if (extraInEmail.length) {
+      Logger.log(src.label + ': ⚠ columns in this email but not in the sheet, NOT auto-added (not at the end - check manually): ' + extraInEmail.join(', '));
+    }
 
     // Full replace, scoped to exactly the email's own column width - this
     // deliberately leaves any sheet-only derived columns (Lob, Derived

@@ -1166,9 +1166,9 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
             <span style="font-size:10px;color:var(--text3)">1 USD = Rp</span>
-            <input id="usd-rate-input" type="number" value="15800" min="1" step="0.01"
+            <input id="usd-rate-input" type="number" value="17500" min="1" step="0.01"
               style="width:70px;font-size:11px;padding:3px 6px;border-radius:5px;border:1px solid var(--border);background:#fff;color:var(--text1);outline:none"
-              oninput="manualRate=parseFloat(this.value)||15800;const admInput=document.getElementById('admin-usd-rate-input');if(admInput)admInput.value=this.value;renderPage(document.querySelector('.page.active')?.id.replace('page-',''))" />
+              oninput="manualRate=parseFloat(this.value)||17500;const admInput=document.getElementById('admin-usd-rate-input');if(admInput)admInput.value=this.value;renderPage(document.querySelector('.page.active')?.id.replace('page-',''))" />
           </div>
         </div>
         <div class="tb-ud-divider"></div>
@@ -7568,10 +7568,10 @@ let dvActiveLob   = 'ALL';
 const DV_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 let currentCurrency = 'USD'; // IDR or USD
-let manualRate = 15800; // manual USD rate set by admin
+let manualRate = 17500; // manual USD rate set by admin
 
 function getExchangeRate() {
-  if (currentCurrency === 'USD') return manualRate || 15800;
+  if (currentCurrency === 'USD') return manualRate || 17500;
   return 1;
 }
 
@@ -8642,7 +8642,7 @@ async function loadAdminPanel() {
         <span style="font-size:12px;color:#64748b">1 USD = Rp</span>
         <input id="admin-usd-rate-input" type="number" value="${manualRate}" min="1" step="0.01"
           style="width:80px;font-size:13px;padding:5px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;outline:none"
-          oninput="manualRate=parseFloat(this.value)||15800;const tbInput=document.getElementById('usd-rate-input');if(tbInput)tbInput.value=this.value;renderPage(document.querySelector('.page.active')?.id.replace('page-',''))" />
+          oninput="manualRate=parseFloat(this.value)||17500;const tbInput=document.getElementById('usd-rate-input');if(tbInput)tbInput.value=this.value;renderPage(document.querySelector('.page.active')?.id.replace('page-',''))" />
       </div>
       <div style="font-size:11px;color:#94a3b8">Applies to all USD amounts across the dashboard</div>
     </div>`;

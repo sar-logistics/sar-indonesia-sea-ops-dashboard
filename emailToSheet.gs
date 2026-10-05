@@ -98,21 +98,31 @@ function processSyncSource(src) {
       ? targetSheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim()).filter(Boolean)
       : [];
 
-    const missingFromEmail = existingHeaders.filter(h => newHeaders.indexOf(h) === -1);
+    // Columns the sheet adds on its own (addLobCol.gs etc.) that never arrive
+    // in the raw email - these are EXPECTED to be "missing from email" every
+    // single run, so call them out separately instead of flagging them as a
+    // generic warning each time
+    const knownDerivedColumns = ['Lob', 'Derived Margin'];
+    const missingFromEmail = existingHeaders.filter(h => newHeaders.indexOf(h) === -1 && knownDerivedColumns.indexOf(h) === -1);
+    const derivedFound     = existingHeaders.filter(h => knownDerivedColumns.indexOf(h) !== -1);
     const extraInEmail     = newHeaders.filter(h => existingHeaders.indexOf(h) === -1);
+    if (derivedFound.length)     Logger.log(src.label + ': (expected) derived columns not touched by sync: ' + derivedFound.join(', '));
     if (missingFromEmail.length) Logger.log(src.label + ': ⚠ columns in the SHEET but missing from this email: ' + missingFromEmail.join(', '));
     if (extraInEmail.length)     Logger.log(src.label + ': ⚠ columns in this email but not yet in the sheet: ' + extraInEmail.join(', '));
-    if (!missingFromEmail.length && !extraInEmail.length) Logger.log(src.label + ': ✓ columns match exactly');
+    if (!missingFromEmail.length && !extraInEmail.length) Logger.log(src.label + ': ✓ columns match exactly (aside from expected derived columns)');
 
-    // Full replace: clear existing data rows (row 1 header kept), write fresh dump
+    // Full replace, scoped to exactly the email's own column width - this
+    // deliberately leaves any sheet-only derived columns (Lob, Derived
+    // Margin, or anything added later) completely untouched, since clearing
+    // the full row width would blank them out until addLobCol() re-runs
     const lastRow = targetSheet.getLastRow();
-    if (lastRow > 1 && lastCol > 0) {
-      targetSheet.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+    if (lastRow > 1) {
+      targetSheet.getRange(2, 1, lastRow - 1, newHeaders.length).clearContent();
     }
     if (newRows.length) {
       targetSheet.getRange(2, 1, newRows.length, newHeaders.length).setValues(newRows);
     }
-    Logger.log(src.label + ': wrote ' + newRows.length + ' rows into "' + src.targetTab + '"');
+    Logger.log(src.label + ': wrote ' + newRows.length + ' rows into "' + src.targetTab + '" (columns 1-' + newHeaders.length + ' only - derived columns left alone)');
 
   } finally {
     // Clean up the temporary converted file regardless of outcome

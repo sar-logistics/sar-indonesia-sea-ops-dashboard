@@ -95,7 +95,7 @@ function processSyncSource(src) {
       Logger.log(src.label + ': ERROR - could not find a "Shipment ID" header row in any tab of this attachment. Tabs present: ' + tempSS.getSheets().map(s => s.getName()).join(', '));
       return;
     }
-    Logger.log(src.label + ': found real data table on tab "' + found.sheetName + '", header row ' + found.headerRowNum);
+    Logger.log(src.label + ': found real data table on tab "' + found.sheetName + '", header row ' + found.headerRowNum + ', starting at column ' + (found.headerColIdx + 1) + (found.headerColIdx > 0 ? ' (' + found.headerColIdx + ' leading blank column(s) skipped)' : ''));
 
     const data = found.data;
     const newHeaders = data[found.headerRowNum - 1].map(h => String(h).trim());
@@ -156,11 +156,17 @@ function findShipmentDataTable(spreadsheet) {
     if (maxRow < 1) continue;
     const sample = sheet.getRange(1, 1, maxRow, sheet.getLastColumn()).getValues();
     for (let r = 0; r < sample.length; r++) {
-      const hasShipmentId = sample[r].some(cell => String(cell).trim() === 'Shipment ID');
-      if (hasShipmentId) {
-        // Found it - now pull the FULL data for this tab (not just the scan sample)
-        const fullData = sheet.getDataRange().getValues();
-        return { sheetName: sheet.getName(), data: fullData, headerRowNum: r + 1 };
+      const colIdx = sample[r].findIndex(cell => String(cell).trim() === 'Shipment ID');
+      if (colIdx !== -1) {
+        // Found it - now pull the FULL data for this tab (not just the scan sample).
+        // Also record WHICH COLUMN "Shipment ID" sits in - the header row can
+        // have blank leading cells before it (a report-template quirk), and if
+        // those get included, every value ends up shifted right by that many
+        // columns relative to the target sheet's own headers. Every row gets
+        // sliced from this column onward so column 1 of what we return is
+        // always "Shipment ID" itself, with no leading blanks.
+        const fullData = sheet.getDataRange().getValues().map(row => row.slice(colIdx));
+        return { sheetName: sheet.getName(), data: fullData, headerRowNum: r + 1, headerColIdx: colIdx };
       }
     }
   }

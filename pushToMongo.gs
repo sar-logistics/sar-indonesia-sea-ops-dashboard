@@ -2,7 +2,7 @@
 // Sheet ID: 1eTuXf5ngxTkJrKPVfXrZiqKw6XUUPam1P4ig7cmV3BY
 // Run pushAll() manually or set trigger
 
-const OPS_BATCH_URL    = 'https://sar-indonesia-sea-ops-dashboard.vercel.app/api/mongo-batch';
+const OPS_BATCH_URL    = 'https://sar-indonesia-sea-ops-dashboard-ten.vercel.app/api/mongo-batch';
 const OPS_BATCH_SECRET = 'Harsh@2644';
 const OPS_SHEET_ID     = '1eTuXf5ngxTkJrKPVfXrZiqKw6XUUPam1P4ig7cmV3BY';
 const TAB_EXPORT       = 'Shipment Profile Export';
@@ -339,7 +339,7 @@ function _addLob(sheet, direction) {
 }
 
 // ── WIP/Accrual Push ──────────────────────────────────────────────────────
-const WIP_BATCH_URL = 'https://sar-indonesia-sea-ops-dashboard.vercel.app/api/wip';
+const WIP_BATCH_URL = 'https://sar-indonesia-sea-ops-dashboard-ten.vercel.app/api/wip';
 
 function _fmtDate(val) {
   if (!val) return '';

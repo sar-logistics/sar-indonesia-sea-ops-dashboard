@@ -6656,8 +6656,18 @@ function renderUnbilledRev() {
     }
   });
 
-  // Flag shipments that have WIP > 0
-  const flaggedDD = filteredDD.filter(r => wipByShipment[r.shipmentId] && wipByShipment[r.shipmentId].length > 0);
+  // Only show jobs whose ETD is older than 3 days — jobs shipped within
+  // the last 3 days are still inside the normal billing grace window
+  const urCutoff = new Date();
+  urCutoff.setHours(0,0,0,0);
+  urCutoff.setDate(urCutoff.getDate() - 3);
+
+  // Flag shipments that have WIP > 0 AND ETD older than the cutoff
+  const flaggedDD = filteredDD.filter(r => {
+    if (!wipByShipment[r.shipmentId] || wipByShipment[r.shipmentId].length === 0) return false;
+    const etd = r.etdDate ? new Date(r.etdDate) : null;
+    return etd && etd < urCutoff;
+  });
 
   _renderSRRFlaggedWip(pageId, 'ur', 'Revenue Not Billed', label, view, getColumns(pageId).cols, filteredDD, flaggedDD, wipByShipment, DV_COLS_WIP_REVENUE);
 }
@@ -6681,8 +6691,18 @@ function renderUnpostedCost() {
     }
   });
 
-  // Flag shipments that have accrual !== 0
-  const flaggedDD = filteredDD.filter(r => accrualByShipment[r.shipmentId] && accrualByShipment[r.shipmentId].length > 0);
+  // Only show jobs whose ETD is older than 7 days — jobs shipped within
+  // the last 7 days are still inside the normal cost-posting grace window
+  const ucCutoff = new Date();
+  ucCutoff.setHours(0,0,0,0);
+  ucCutoff.setDate(ucCutoff.getDate() - 7);
+
+  // Flag shipments that have accrual !== 0 AND ETD older than the cutoff
+  const flaggedDD = filteredDD.filter(r => {
+    if (!accrualByShipment[r.shipmentId] || accrualByShipment[r.shipmentId].length === 0) return false;
+    const etd = r.etdDate ? new Date(r.etdDate) : null;
+    return etd && etd < ucCutoff;
+  });
 
   _renderSRRFlaggedWip(pageId, 'uc', 'Cost Not Posted', label, view, getColumns(pageId).cols, filteredDD, flaggedDD, accrualByShipment, DV_COLS_WIP_COST);
 }

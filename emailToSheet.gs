@@ -122,43 +122,29 @@ function processSyncSource(src) {
       : [];
 
     // Columns the sheet adds on its own (addLobCol.gs etc.) that never arrive
-    // in the raw email - these are EXPECTED to be "missing from email" every
-    // single run, so call them out separately instead of flagging them as a
-    // generic warning each time
+    // in the raw email - purely informational now, logged so you can see at
+    // a glance whether anything unexpected changed
     const knownDerivedColumns = ['Lob', 'Derived Margin'];
-    const missingFromEmail = existingHeaders.filter(h => newHeaders.indexOf(h) === -1 && knownDerivedColumns.indexOf(h) === -1);
-    const derivedFound     = existingHeaders.filter(h => knownDerivedColumns.indexOf(h) !== -1);
-    const extraInEmail     = newHeaders.filter(h => existingHeaders.indexOf(h) === -1);
-    if (derivedFound.length)     Logger.log(src.label + ': (expected) derived columns not touched by sync: ' + derivedFound.join(', '));
-    if (missingFromEmail.length) Logger.log(src.label + ': ⚠ columns in the SHEET but missing from this email: ' + missingFromEmail.join(', '));
-    if (!missingFromEmail.length && !extraInEmail.length) Logger.log(src.label + ': ✓ columns match exactly (aside from expected derived columns)');
+    const derivedFound = existingHeaders.filter(h => knownDerivedColumns.indexOf(h) !== -1);
+    if (derivedFound.length) Logger.log(src.label + ': (expected) derived columns beyond column ' + newHeaders.length + ', not touched by sync: ' + derivedFound.join(', '));
 
-    // Self-healing: if the email has new trailing columns the sheet doesn't
-    // have a header for yet, add them now rather than just warning about it -
-    // otherwise their data writes in under a blank header every single run.
-    // Only handles columns added at the END (lastCol onward); a column
-    // inserted in the MIDDLE of the email's order would need a manual fix,
-    // since this script writes purely by position, not by matching names.
-    if (newHeaders.length > lastCol) {
-      const newColHeaders = newHeaders.slice(lastCol);
-      targetSheet.getRange(1, lastCol + 1, 1, newColHeaders.length).setValues([newColHeaders]);
-      Logger.log(src.label + ': + added ' + newColHeaders.length + ' new header column(s) to the sheet: ' + newColHeaders.join(', '));
-    } else if (extraInEmail.length) {
-      Logger.log(src.label + ': ⚠ columns in this email but not in the sheet, NOT auto-added (not at the end - check manually): ' + extraInEmail.join(', '));
-    }
-
-    // Full replace, scoped to exactly the email's own column width - this
-    // deliberately leaves any sheet-only derived columns (Lob, Derived
-    // Margin, or anything added later) completely untouched, since clearing
-    // the full row width would blank them out until addLobCol() re-runs
+    // Full replace, HEADER ROW INCLUDED: clears row 1 through the last data
+    // row, scoped to exactly the email's own column width, then writes the
+    // email's own header row fresh followed by its data rows. This means the
+    // sheet's header text always matches the source exactly - no separate
+    // append/compare step needed - while anything beyond the email's own
+    // column count (Lob, Derived Margin, or anything else added later) is
+    // left completely untouched, since the clear/write never reaches past
+    // column newHeaders.length.
     const lastRow = targetSheet.getLastRow();
-    if (lastRow > 1) {
-      targetSheet.getRange(2, 1, lastRow - 1, newHeaders.length).clearContent();
+    if (lastRow > 0) {
+      targetSheet.getRange(1, 1, lastRow, newHeaders.length).clearContent();
     }
+    targetSheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]);
     if (newRows.length) {
       targetSheet.getRange(2, 1, newRows.length, newHeaders.length).setValues(newRows);
     }
-    Logger.log(src.label + ': wrote ' + newRows.length + ' rows into "' + src.targetTab + '" (columns 1-' + newHeaders.length + ' only - derived columns left alone)');
+    Logger.log(src.label + ': wrote header row + ' + newRows.length + ' data rows into "' + src.targetTab + '" (columns 1-' + newHeaders.length + ' only - derived columns left alone)');
 
   } finally {
     // Clean up the temporary converted file regardless of outcome

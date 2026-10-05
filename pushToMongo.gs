@@ -263,7 +263,7 @@ function pushRecords(records, direction) {
 }
 
 function pushAll() {
-  Logger.log('=== SAR TH Ops Push Starting ===');
+  Logger.log('=== SAR ID Ops Push Starting ===');
   const ss = SpreadsheetApp.openById(OPS_SHEET_ID);
 
   const expSheet = ss.getSheetByName(TAB_EXPORT);
@@ -282,7 +282,7 @@ function pushAll() {
     pushRecords(impRecords, 'Import');
   }
 
-  Logger.log('=== SAR TH Ops Push Done ===');
+  Logger.log('=== SAR ID Ops Push Done ===');
 }
 
 function wipeAll() {
@@ -454,13 +454,7 @@ function pushWip() {
 
 
 function masterPush() {
-  addLobColumn();
+  addLobCol();
   fillWipCols();
   wipeAndPushAll();
-}
-
-function checkDerivedMarginMap() {
-  const keys = Object.keys(HEADER_MAP);
-  Logger.log('Has Derived Margin: ' + keys.includes('Derived Margin'));
-  Logger.log('Has derivedMargin in NUM_KEYS: ' + NUM_KEYS.has('derivedMargin'));
 }

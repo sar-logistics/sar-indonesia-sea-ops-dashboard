@@ -536,7 +536,7 @@ body.sidebar-hidden .sidebar-reveal{opacity:1;pointer-events:all}
 .sk-wrap.pre-fade{opacity:0}
 
 .sys-items-wrap{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.34,1.56,.64,1),opacity .25s ease;opacity:0}
-.sys-section:hover .sys-items-wrap,.sys-section.expanded .sys-items-wrap{max-height:200px;opacity:1}
+.sys-section:hover .sys-items-wrap,.sys-section.expanded .sys-items-wrap{max-height:260px;opacity:1}
 .sys-section:hover .sys-section-label i,.sys-section.expanded .sys-section-label i{transform:rotate(180deg)}
 .sys-section-label i{transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
 
@@ -1121,6 +1121,9 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       </div>
       <div class="sys-item admin" id="sys-admin" onclick="setPage('admin','Admin Panel','System',this)">
         <i class="ti ti-shield-lock"></i>Admin Panel
+      </div>
+      <div class="sys-item feedback" id="sys-feedback" onclick="setPage('feedback','Feedback','System',this)">
+        <i class="ti ti-message-circle"></i>Feedback
       </div>
       </div><!-- /sys-items-wrap -->
     </div>
@@ -4415,6 +4418,41 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
         </div>
       </div>
       <div class="page" id="page-admin"><div id="adminContent"></div></div>
+      <div class="page" id="page-feedback" style="height:100%">
+        <div style="padding:20px 24px 0;height:100%;box-sizing:border-box;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;flex-shrink:0">
+            <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.08em">💬 FEEDBACK</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-shrink:0">
+            <div style="position:relative;flex:1;max-width:360px">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px">🔍</span>
+              <input id="feedbackSearch" placeholder="Search by name, email, branch or type…" oninput="filterFeedbackTable(this.value)"
+                style="width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:8px;padding:7px 12px 7px 32px;font-size:13px;color:#0f172a;outline:none;background:#fff">
+            </div>
+            <span id="feedbackCount" style="font-size:13px;color:#64748b"></span>
+            <button onclick="loadFeedback()" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;font-size:13px;font-weight:600;cursor:pointer">
+              <i class="ti ti-refresh" style="font-size:14px"></i> Refresh
+            </button>
+          </div>
+          <div class="tbl-wrap" style="overflow:auto;flex:1;min-height:0;max-height:none;margin-bottom:20px">
+            <table id="feedbackTable" style="width:100%;border-collapse:collapse;font-size:12.5px">
+              <thead>
+                <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+                  <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">Timestamp</th>
+                  <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Name</th>
+                  <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Email</th>
+                  <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Branch</th>
+                  <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Type</th>
+                  <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Description</th>
+                </tr>
+              </thead>
+              <tbody id="feedbackTbody">
+                <tr><td colspan="6" style="text-align:center;padding:48px;color:#94a3b8">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -5395,6 +5433,7 @@ function setPage(pageId, title, group, el) {
   if (pageId === 'admin') loadAdminPanel();
   if (pageId === 'teams') renderTeams();
   if (pageId === 'usage') loadUsageAnalytics();
+  if (pageId === 'feedback') loadFeedback();
   // Render report pages lazily — only when the user actually navigates to them
   const reportPages = ['job-unlinked','ol-delay','open-jobs','total-jobs','unbilled-rev','unposted-cost','low-profit','inv-delay','ams','hbl-not-released','mbl-not-released','pre-alert-delay','si-not-submitted','vendor-payment-delay','sob-blank','mbl-type-blank','hbl-type-blank','mbl-col-hbl-pre','mbl-col-hbl-col','mbl-pre-hbl-pre','mbl-pre-hbl-col','perf-ol','perf-hbl','perf-mbl','perf-prealert','perf-inv','perf-si','perf-vendor-payment','summary','revenue-not-billed','cost-not-posted','job-profit','hbl-release','mbl-release','invoice-not-raised'];
   if (reportPages.includes(pageId) && allSRR.length) renderPage(pageId);
@@ -8212,14 +8251,16 @@ async function submitFeedback() {
       description:  desc,
     };
 
-    await fetch(FEEDBACK_WEB_APP_URL, {
+    // Written straight into MongoDB via the same API the rest of the
+    // dashboard already uses - no separate Apps Script Web App needed.
+    // Shows up immediately on the Feedback page (Admin only).
+    const resp = await fetch(MONGO_API, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload),
-      mode:    'no-cors',  // GAS Web Apps require no-cors
+      body:    JSON.stringify({ action: 'insertOne', collection: 'feedback', document: payload }),
     });
+    if (!resp.ok) throw new Error('Feedback save failed: HTTP ' + resp.status);
 
-    // Show success (no-cors means we can't read response, assume success)
     document.getElementById('fbBody').style.display    = 'none';
     document.getElementById('fbFooter').style.display  = 'none';
     document.getElementById('fbSuccess').style.display = 'flex';
@@ -8233,6 +8274,75 @@ async function submitFeedback() {
     btn.innerHTML = '<i class="ti ti-send" style="font-size:13px"></i> Submit';
     alert('Failed to submit feedback. Please try again.');
   }
+}
+
+// ── FEEDBACK PAGE (Admin only) ─────────────────────────────────
+let _feedbackRows = [];
+
+async function loadFeedback() {
+  const tbody = document.getElementById('feedbackTbody');
+  const countEl = document.getElementById('feedbackCount');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:48px;color:#94a3b8">Loading…</td></tr>';
+
+  try {
+    const resp = await fetch(MONGO_API, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'find', collection:'feedback', filter:{}, limit:5000 }) });
+    const data = await resp.json();
+    const rows = (data.documents || []).sort((a,b) => (b.timestamp||'').localeCompare(a.timestamp||''));
+    _feedbackRows = rows;
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:48px;color:#94a3b8">No feedback submitted yet.</td></tr>';
+      if (countEl) countEl.textContent = '0 entries';
+      return;
+    }
+
+    renderFeedbackRows(rows);
+    if (countEl) countEl.textContent = rows.length.toLocaleString() + ' entries';
+  } catch(e) {
+    console.error('[loadFeedback] failed:', e);
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:48px;color:#ef4444">Failed to load feedback.</td></tr>';
+  }
+}
+
+function renderFeedbackRows(rows) {
+  const tbody = document.getElementById('feedbackTbody');
+  if (!tbody) return;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:#94a3b8">No matching feedback.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const ts = r.timestamp ? new Date(r.timestamp).toLocaleString('en-US', { dateStyle:'medium', timeStyle:'short' }) : '—';
+    return `<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:8px 14px;white-space:nowrap;color:#64748b">${ts}</td>
+      <td style="padding:8px 14px">${esc(r.name||'—')}</td>
+      <td style="padding:8px 14px;color:#64748b">${esc(r.email||'—')}</td>
+      <td style="padding:8px 14px">${esc(r.branch||'—')}</td>
+      <td style="padding:8px 14px"><span style="background:#eff6ff;color:#2563eb;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600">${esc(r.feedbackType||'—')}</span></td>
+      <td style="padding:8px 14px;max-width:360px">${esc(r.description||'—')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function filterFeedbackTable(q) {
+  q = (q||'').toLowerCase().trim();
+  if (!q) { renderFeedbackRows(_feedbackRows); return; }
+  const filtered = _feedbackRows.filter(r =>
+    (r.name||'').toLowerCase().includes(q) ||
+    (r.email||'').toLowerCase().includes(q) ||
+    (r.branch||'').toLowerCase().includes(q) ||
+    (r.feedbackType||'').toLowerCase().includes(q) ||
+    (r.description||'').toLowerCase().includes(q)
+  );
+  renderFeedbackRows(filtered);
+  const countEl = document.getElementById('feedbackCount');
+  if (countEl) countEl.textContent = filtered.length.toLocaleString() + ' of ' + _feedbackRows.length.toLocaleString();
 }
 
 // ── FORCE LOGOUT after 30 minutes of session ─────────────────
@@ -8290,6 +8400,7 @@ function applyRLS() {
   document.getElementById('sys-admin').style.display  = isAdmin ? 'flex' : 'none';
   document.getElementById('sys-teams').style.display  = (isAdmin || isHR || isOpsHead) ? 'flex' : 'none';
   document.getElementById('sys-usage').style.display  = (isAdmin || isHR || isOpsHead || isManager || isTeamLeader) ? 'flex' : 'none';
+  document.getElementById('sys-feedback').style.display = isAdmin ? 'flex' : 'none';
 
   if (isAdmin || isHR || isOpsHead) {
     allSRR = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));

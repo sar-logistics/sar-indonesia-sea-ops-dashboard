@@ -8573,7 +8573,7 @@ function exportUsageToExcel() {
 }
 
 // ── ADMIN PANEL ──────────────────────────────────────────────
-const ROLES = ['Admin','Co-Admin','HR','Ops Head','Manager','Team Leader','Job Owner'];
+const ROLES = ['Admin','Co-Admin','HR','Ops Head','Manager','Team Leader','Job Owner','Docs','CS'];
 const ROLE_COLORS = {
   'Admin':        { bg:'#f3f0ff', color:'#7c3aed', border:'#c4b5fd' },
   'Co-Admin':     { bg:'#f3f0ff', color:'#7c3aed', border:'#c4b5fd' },
@@ -8590,6 +8590,8 @@ const ROLE_GROUPS = [
   { label: 'MANAGER',            roles: ['Manager','manager'] },
   { label: 'TEAM LEADER',        roles: ['Team Leader','team leader'] },
   { label: 'JOB OWNER',          roles: ['Job Owner','job owner'] },
+  { label: 'DOCS',               roles: ['Docs','docs'] },
+  { label: 'CS',                 roles: ['CS','cs'] },
 ];
 
 async function loadAdminPanel() {

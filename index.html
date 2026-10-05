@@ -10590,19 +10590,44 @@ function renderOrgChart() {
     </div>`;
   }
 
-  // Ops Head (root) block: card + managers spread horizontally below
+  // Group of persona (Docs/CS) cards under a labeled branch header
+  function personaBranch(label, members) {
+    if (!members.length) return '';
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0">
+      <div style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:.06em;text-transform:uppercase;background:#f1f5f9;border-radius:6px;padding:4px 10px;margin-bottom:10px">${label}</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+        ${members.map(u => nodeCard(u)).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Ops Head (root) block: card + branches spread horizontally below.
+  // Real Managers get the normal nested tree; Docs/CS direct reports are
+  // grouped into labeled branches instead of being treated as managers
   function opsHeadBlock(root) {
-    const managers = directReportsOf(root);
-    if (!managers.length) {
+    const allReports = directReportsOf(root);
+    const managers  = allReports.filter(u => (u.role||'').toLowerCase().trim() === 'manager');
+    const docsUsers = allReports.filter(u => (u.role||'').toLowerCase().trim() === 'docs');
+    const csUsers   = allReports.filter(u => (u.role||'').toLowerCase().trim() === 'cs');
+    const others    = allReports.filter(u => !['manager','docs','cs'].includes((u.role||'').toLowerCase().trim()));
+
+    const branches = [
+      ...managers.map(m => managerBlock(m)),
+      personaBranch('Docs', docsUsers),
+      personaBranch('Ops', csUsers),
+      ...others.map(o => genericBlock(o)),
+    ].filter(Boolean);
+
+    if (!branches.length) {
       return `<div style="display:flex;flex-direction:column;align-items:center">${nodeCard(root)}</div>`;
     }
     return `<div style="display:flex;flex-direction:column;align-items:center;gap:0">
       ${nodeCard(root)}
-      ${managers.length === 1
-        ? `${STEM}${managerBlock(managers[0])}`
-        : `${hBar(managers.length)}
+      ${branches.length === 1
+        ? `${STEM}${branches[0]}`
+        : `${hBar(branches.length)}
            <div style="display:flex;gap:16px;align-items:flex-start">
-             ${managers.map(m => managerBlock(m)).join('')}
+             ${branches.join('')}
            </div>`
       }
     </div>`;

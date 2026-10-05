@@ -7553,7 +7553,7 @@ function fmtIndian(n) {
   const abs = Math.abs(converted);
   const sign = converted < 0 ? '-' : '';
   const sym = getCurrencySymbol();
-  return sign + sym + abs.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  return sign + sym + abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
 }
 
 function formatDvDate(v) {

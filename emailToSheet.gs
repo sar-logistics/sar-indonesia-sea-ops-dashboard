@@ -1,11 +1,18 @@
-// ── SAR Indonesia Sea Ops — Email → Sheet Sync ─────────────────────────────
-// Separate script, run on a daily TIME-DRIVEN TRIGGER (not manually, not on
-// open/edit). Source emails arrive from noreply@sargroup.net around
-// 2:02–2:04 AM every day, so set the trigger for e.g. 3:00–4:00 AM:
+// ── SAR Indonesia Sea Ops — Email → Sheet Sync, then Mongo Push ────────────
+// Set ONE daily TIME-DRIVEN TRIGGER on runDailySync() (not syncEmailToSheet
+// directly, and not manually/on open/edit). Source emails arrive from
+// noreply@sargroup.net around 2:02–2:04 AM every day, so a 10 AM trigger
+// gives plenty of margin:
 //   Triggers (clock icon) → + Add Trigger
-//     Function: syncEmailToSheet
+//     Function: runDailySync
 //     Event source: Time-driven
-//     Type: Day timer, between 3am and 4am
+//     Type: Day timer, between 10am and 11am
+//
+// runDailySync() runs syncEmailToSheet() (pulls the day's Export/Import
+// emails into the sheet) and THEN masterPush() from pushToMongo.gs (which
+// runs addLobCol() → fillWipCols() → wipeAndPushAll() to push the now-fresh
+// sheet data into MongoDB) - in that order, so the push always reflects
+// today's data instead of racing ahead of it.
 //
 // ONE-TIME SETUP REQUIRED before this works:
 //   In the Apps Script editor, click Services (+ icon in the left sidebar) →
@@ -22,6 +29,22 @@
 //   doesn't line up), then REPLACES that tab's data rows with the fresh
 //   dump (each email is a full current snapshot, not incremental — matches
 //   what you described). The temporary converted file is deleted after.
+
+function runDailySync() {
+  Logger.log('=== Daily Sync Starting ===');
+  try {
+    syncEmailToSheet();
+  } catch (e) {
+    Logger.log('syncEmailToSheet() FAILED: ' + e.message + ' - aborting before masterPush() to avoid pushing stale/partial data');
+    return;
+  }
+  try {
+    masterPush();
+  } catch (e) {
+    Logger.log('masterPush() FAILED: ' + e.message);
+  }
+  Logger.log('=== Daily Sync Done ===');
+}
 
 const SYNC_SHEET_ID = '1eTuXf5ngxTkJrKPVfXrZiqKw6XUUPam1P4ig7cmV3BY';
 const SYNC_SOURCES = [

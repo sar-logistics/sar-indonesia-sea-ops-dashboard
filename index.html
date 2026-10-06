@@ -4812,11 +4812,9 @@ function toggleLobRow(lob) {
   const rail = document.getElementById('lob-icon-rail');
   if (rail) rail.classList.remove('visible');
 
-  // Restore visibility hidden by the FLIP animations (see flipLogoToSidebar/
-  // flipLobIconToRail), same reset as railExpand() - this path bypasses that
-  // function when a different LOB row is clicked directly while the rail is showing
-  const heroLogo = document.getElementById('lob-hero-logo');
-  if (heroLogo) heroLogo.style.visibility = '';
+  // Restore visibility hidden by the flipLobIconToRail FLIP animation,
+  // same reset as railExpand() - this path bypasses that function when a
+  // different LOB row is clicked directly while the rail is showing
   document.querySelectorAll('.lob-row-icon-badge').forEach(b => { b.style.visibility = ''; });
 
   // Hide pages again so focus returns to LOB/direction selection
@@ -4903,46 +4901,11 @@ function setDirection(dir) {
   };
 
   if (skPlaceholder && skPlaceholder.classList.contains('visible')) {
-    flipLogoToSidebar();
     skPlaceholder.classList.add('fading-out');
     setTimeout(finishSwap, 420);
   } else {
     finishSwap();
   }
-}
-
-// FLIP animation: clones the large hero logo, pins the clone over the real
-// hero logo's exact screen position/size, then animates it (position, size,
-// and color filter) to match the sidebar logo's position/size - so it reads
-// as the same logo traveling and shrinking into place, not two unrelated
-// logos swapping via an opacity fade.
-function flipLogoToSidebar() {
-  const hero = document.getElementById('lob-hero-logo');
-  const target = document.querySelector('.sb-logo-img');
-  if (!hero || !target) return; // fall back to the plain fade if either is missing
-
-  const fromRect = hero.getBoundingClientRect();
-  const toRect = target.getBoundingClientRect();
-  if (fromRect.width === 0 || toRect.width === 0) return; // not visible, nothing to animate
-
-  const clone = hero.cloneNode(true);
-  clone.removeAttribute('id');
-  clone.style.cssText = `position:fixed;top:${fromRect.top}px;left:${fromRect.left}px;width:${fromRect.width}px;height:${fromRect.height}px;z-index:9999;pointer-events:none;margin:0;transform:none;filter:drop-shadow(0 2px 6px rgba(15,31,46,.15));transition:top .4s cubic-bezier(.4,0,.2,1),left .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1),height .4s cubic-bezier(.4,0,.2,1),filter .4s ease`;
-  document.body.appendChild(clone);
-  hero.style.visibility = 'hidden'; // hide the original immediately so only the traveling clone is visible, not both at once
-
-  // Force a layout flush so the browser registers the start position before
-  // the end position is applied, otherwise both happen in the same frame
-  // and there's nothing to animate between
-  void clone.offsetWidth;
-
-  clone.style.top = toRect.top + 'px';
-  clone.style.left = toRect.left + 'px';
-  clone.style.width = toRect.width + 'px';
-  clone.style.height = toRect.height + 'px';
-  clone.style.filter = 'brightness(0) invert(1)';
-
-  setTimeout(() => clone.remove(), 420);
 }
 
 // FLIP animation for the LOB icon badge itself (anchor/plane/truck) -
@@ -4983,11 +4946,9 @@ function railExpand() {
   const rail = document.getElementById('lob-icon-rail');
   if (rail) rail.classList.remove('visible');
 
-  // Restore visibility on the hero logo and LOB icon badges - the FLIP
-  // animations hide these originals while their clones travel, so they
-  // need resetting here or they'd stay invisible on return to this screen
-  const heroLogo = document.getElementById('lob-hero-logo');
-  if (heroLogo) heroLogo.style.visibility = '';
+  // Restore visibility on the LOB icon badges - the flipLobIconToRail FLIP
+  // animation hides the original while its clone travels, so it needs
+  // resetting here or it'd stay invisible on return to this screen
   document.querySelectorAll('.lob-row-icon-badge').forEach(b => { b.style.visibility = ''; });
 
   // Hide pages and System section again to focus on LOB/direction selection

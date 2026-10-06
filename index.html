@@ -4812,6 +4812,13 @@ function toggleLobRow(lob) {
   const rail = document.getElementById('lob-icon-rail');
   if (rail) rail.classList.remove('visible');
 
+  // Restore visibility hidden by the FLIP animations (see flipLogoToSidebar/
+  // flipLobIconToRail), same reset as railExpand() - this path bypasses that
+  // function when a different LOB row is clicked directly while the rail is showing
+  const heroLogo = document.getElementById('lob-hero-logo');
+  if (heroLogo) heroLogo.style.visibility = '';
+  document.querySelectorAll('.lob-row-icon-badge').forEach(b => { b.style.visibility = ''; });
+
   // Hide pages again so focus returns to LOB/direction selection
   const navScroll0 = document.getElementById('main-nav-scroll');
   if (navScroll0) navScroll0.style.display = 'none';
@@ -4922,6 +4929,7 @@ function flipLogoToSidebar() {
   clone.removeAttribute('id');
   clone.style.cssText = `position:fixed;top:${fromRect.top}px;left:${fromRect.left}px;width:${fromRect.width}px;height:${fromRect.height}px;z-index:9999;pointer-events:none;margin:0;transform:none;filter:drop-shadow(0 2px 6px rgba(15,31,46,.15));transition:top .4s cubic-bezier(.4,0,.2,1),left .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1),height .4s cubic-bezier(.4,0,.2,1),filter .4s ease`;
   document.body.appendChild(clone);
+  hero.style.visibility = 'hidden'; // hide the original immediately so only the traveling clone is visible, not both at once
 
   // Force a layout flush so the browser registers the start position before
   // the end position is applied, otherwise both happen in the same frame
@@ -4953,6 +4961,7 @@ function flipLobIconToRail(lob, fromRect) {
   const clone = sourceBadge ? sourceBadge.cloneNode(true) : target.cloneNode(true);
   clone.style.cssText = `position:fixed;top:${fromRect.top}px;left:${fromRect.left}px;width:${fromRect.width}px;height:${fromRect.height}px;z-index:9999;pointer-events:none;margin:0;border-radius:50%;background:rgba(255,255,255,.24);display:flex;align-items:center;justify-content:center;transition:top .4s cubic-bezier(.4,0,.2,1),left .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1),height .4s cubic-bezier(.4,0,.2,1),border-radius .4s ease,background .4s ease`;
   document.body.appendChild(clone);
+  if (sourceBadge) sourceBadge.style.visibility = 'hidden'; // hide the original immediately so only the traveling clone is visible, not both at once
 
   void clone.offsetWidth;
 
@@ -4973,6 +4982,13 @@ function railExpand() {
   if (navZone) navZone.classList.remove('hidden-collapsed');
   const rail = document.getElementById('lob-icon-rail');
   if (rail) rail.classList.remove('visible');
+
+  // Restore visibility on the hero logo and LOB icon badges - the FLIP
+  // animations hide these originals while their clones travel, so they
+  // need resetting here or they'd stay invisible on return to this screen
+  const heroLogo = document.getElementById('lob-hero-logo');
+  if (heroLogo) heroLogo.style.visibility = '';
+  document.querySelectorAll('.lob-row-icon-badge').forEach(b => { b.style.visibility = ''; });
 
   // Hide pages and System section again to focus on LOB/direction selection
   const navScroll = document.getElementById('main-nav-scroll');

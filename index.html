@@ -4440,18 +4440,19 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
             <div style="overflow:auto;flex:1">
               <table id="feedbackTable" style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
                 <colgroup>
-                  <col style="width:90px"><col style="width:220px"><col style="width:120px"><col>
+                  <col style="width:90px"><col style="width:220px"><col style="width:120px"><col style="width:140px"><col>
                 </colgroup>
                 <thead>
                   <tr style="background:#f8fafc;border-bottom:1px solid #e8ecf0">
                     <th style="padding:12px 16px;text-align:left;font-size:10.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap">When</th>
                     <th style="padding:12px 16px;text-align:left;font-size:10.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Submitted By</th>
                     <th style="padding:12px 16px;text-align:left;font-size:10.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Type</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:10.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Status</th>
                     <th style="padding:12px 16px;text-align:left;font-size:10.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Description</th>
                   </tr>
                 </thead>
                 <tbody id="feedbackTbody">
-                  <tr><td colspan="4" style="text-align:center;padding:48px;color:#94a3b8">Loading…</td></tr>
+                  <tr><td colspan="5" style="text-align:center;padding:48px;color:#94a3b8">Loading…</td></tr>
                 </tbody>
               </table>
             </div>
@@ -8246,11 +8247,13 @@ async function submitFeedback() {
 
   try {
     const payload = {
+      ticketId:    'tk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
       timestamp:   new Date().toISOString(),
       name,
       email,
       feedbackType: type,
       description:  desc,
+      status:      'Pending',
     };
 
     // Written straight into MongoDB via the same API the rest of the
@@ -8295,7 +8298,7 @@ async function loadFeedback() {
     _feedbackRows = rows;
 
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:48px;color:#94a3b8">No tickets submitted yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:48px;color:#94a3b8">No tickets submitted yet.</td></tr>';
       if (countEl) countEl.textContent = '0 entries';
       return;
     }
@@ -8304,7 +8307,7 @@ async function loadFeedback() {
     if (countEl) countEl.textContent = rows.length.toLocaleString() + ' entries';
   } catch(e) {
     console.error('[loadFeedback] failed:', e);
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:48px;color:#ef4444">Failed to load tickets.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:48px;color:#ef4444">Failed to load tickets.</td></tr>';
   }
 }
 
@@ -8322,11 +8325,67 @@ function feedbackTypeBadge(type) {
   return `<span style="display:inline-block;background:${c.bg};color:${c.fg};border-radius:6px;padding:3px 10px;font-size:11.5px;font-weight:700;white-space:nowrap">${esc(type||'—')}</span>`;
 }
 
+const TICKET_STATUS_COLORS = {
+  'Pending':   { bg:'#fef9c3', fg:'#854d0e' },
+  'Completed': { bg:'#dcfce7', fg:'#166534' },
+  'Aborted':   { bg:'#fee2e2', fg:'#991b1b' },
+};
+
+// Admin-only control (this page is already restricted to Admin via applyRLS).
+// ticketKey is either the ticket's own ticketId, or - for tickets submitted
+// before this feature existed and so have no ticketId - a fallback composite
+// key built from timestamp+email, good enough to identify that one row.
+function ticketStatusDropdown(ticketKey, status) {
+  const c = TICKET_STATUS_COLORS[status] || TICKET_STATUS_COLORS['Pending'];
+  const options = ['Pending', 'Completed', 'Aborted'].map(s =>
+    `<option value="${s}" ${s === status ? 'selected' : ''}>${s}</option>`
+  ).join('');
+  return `<select onchange="updateTicketStatus('${esc(ticketKey)}', this.value, this)"
+    style="background:${c.bg};color:${c.fg};border:none;border-radius:6px;padding:5px 8px;font-size:12px;font-weight:700;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none">
+    ${options}
+  </select>`;
+}
+
+async function updateTicketStatus(ticketKey, newStatus, selectEl) {
+  const prevBg = selectEl.style.background, prevFg = selectEl.style.color;
+  selectEl.disabled = true;
+  try {
+    let filter;
+    if (ticketKey.indexOf('__fallback__') === 0) {
+      const parts = ticketKey.replace('__fallback__', '').split('__');
+      filter = { timestamp: parts[0], email: parts[1] };
+    } else {
+      filter = { ticketId: ticketKey };
+    }
+    const resp = await fetch(MONGO_API, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ action: 'updateOne', collection: 'feedback', filter, update: { $set: { status: newStatus } } })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    // Keep the local cache in sync so a re-search/filter doesn't revert the dropdown
+    const row = _feedbackRows.find(r => (r.ticketId || ('__fallback__' + (r.timestamp||'') + '__' + (r.email||''))) === ticketKey);
+    if (row) row.status = newStatus;
+
+    const c = TICKET_STATUS_COLORS[newStatus] || TICKET_STATUS_COLORS['Pending'];
+    selectEl.style.background = c.bg;
+    selectEl.style.color = c.fg;
+  } catch (e) {
+    console.error('[updateTicketStatus] failed:', e);
+    alert('Failed to update ticket status. Please try again.');
+    selectEl.style.background = prevBg;
+    selectEl.style.color = prevFg;
+  } finally {
+    selectEl.disabled = false;
+  }
+}
+
 function renderFeedbackRows(rows) {
   const tbody = document.getElementById('feedbackTbody');
   if (!tbody) return;
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:left;padding:40px;color:#94a3b8">No matching tickets.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:left;padding:40px;color:#94a3b8">No matching tickets.</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(r => {
@@ -8336,6 +8395,8 @@ function renderFeedbackRows(rows) {
     const name = r.name || 'Unknown';
     const initials = avInitials(name);
     const bgCol = avColor(name);
+    const ticketKey = r.ticketId ? r.ticketId : ('__fallback__' + (r.timestamp||'') + '__' + (r.email||''));
+    const status = r.status || 'Pending';
     return `<tr style="border-bottom:1px solid #f1f5f9">
       <td style="text-align:left;padding:14px 16px;white-space:nowrap;vertical-align:middle">
         <div style="font-size:12.5px;font-weight:600;color:#334155">${dateStr}</div>
@@ -8351,6 +8412,7 @@ function renderFeedbackRows(rows) {
         </div>
       </td>
       <td style="text-align:left;padding:14px 16px;vertical-align:middle">${feedbackTypeBadge(r.feedbackType)}</td>
+      <td style="text-align:left;padding:14px 16px;vertical-align:middle">${ticketStatusDropdown(ticketKey, status)}</td>
       <td style="text-align:left;padding:14px 16px;vertical-align:middle"><div style="max-width:760px;color:#334155;line-height:1.5;white-space:normal;word-break:break-word">${esc(r.description||'—')}</div></td>
     </tr>`;
   }).join('');

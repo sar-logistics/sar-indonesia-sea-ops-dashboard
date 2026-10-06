@@ -53,10 +53,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:1
 #appShell{flex:1;overflow:hidden;display:none;flex-direction:column}
 
 /* TOPBAR — full width */
-.topbar{height:var(--topbar);background:var(--bg);position:relative;display:flex;align-items:center;padding:0 16px 0 20px;gap:8px;flex-shrink:0;z-index:10;box-shadow:none;border-bottom:none}
-/* On the landing/home hero screen specifically, keep the topbar white to match
-   the hero's own white background - only data pages get the grey match above */
-body:has(#sk-lob-placeholder.visible) .topbar{background:#FFFFFF}
+.topbar{height:var(--topbar);background:#FFFFFF;position:relative;display:flex;align-items:center;padding:0 16px 0 20px;gap:8px;flex-shrink:0;z-index:10;box-shadow:none;border-bottom:none}
 .topbar::after{content:none}
 .tb-logo-wrap{display:none}
 .tb-divider{display:none}
@@ -5449,6 +5446,57 @@ function initGroups() {
   });
 }
 
+// Carries the Report View (date range) and Add Filters (Zone/Branch/Owner/
+// MBL Type/HBL Type) settings from whichever page was previously active onto
+// the page being switched to, matched purely by each page's id suffix on
+// pickerState/msState keys and element ids (e.g. "mp-from-summary" ->
+// "mp-from-open-jobs"). This makes filter changes universal across pages
+// instead of resetting per page, until the user explicitly changes them again.
+function syncUniversalFilters(oldSuffix, newSuffix) {
+  // Date pickers: monthly from/to, weekly month, custom from/to
+  ['mp-from-', 'mp-to-', 'mp-wk-', 'dp-cfrom-', 'dp-cto-'].forEach(prefix => {
+    const oldKey = prefix + oldSuffix, newKey = prefix + newSuffix;
+    if (pickerState[oldKey]) pickerState[newKey] = pickerState[oldKey];
+    const oldLbl = document.getElementById(oldKey + '-lbl');
+    const newLbl = document.getElementById(newKey + '-lbl');
+    if (oldLbl && newLbl) {
+      newLbl.textContent = oldLbl.textContent;
+      newLbl.classList.toggle('dp-placeholder', oldLbl.classList.contains('dp-placeholder'));
+    }
+  });
+
+  // Report View type (monthly/weekly/quarterly/yearly/custom) + which sub-panel shows
+  const oldView = document.getElementById('view-' + oldSuffix);
+  const newView = document.getElementById('view-' + newSuffix);
+  let viewVal = oldView ? oldView.value : 'monthly';
+  if (oldView && newView) newView.value = viewVal;
+  ['monthly','weekly','quarterly','yearly','custom'].forEach(v => {
+    const el = document.getElementById('fc-' + v + '-' + newSuffix);
+    if (el) el.style.display = (v === viewVal) ? 'flex' : 'none';
+  });
+
+  // Quarter selector (Q1-Q4)
+  const oldQ = document.getElementById('quarter-' + oldSuffix);
+  const newQ = document.getElementById('quarter-' + newSuffix);
+  if (oldQ && newQ) newQ.value = oldQ.value;
+
+  // Add Filters panel: Zone/Branch/Owner multi-selects
+  ['zone-', 'branch-', 'owner-'].forEach(prefix => {
+    const oldKey = prefix + oldSuffix, newKey = prefix + newSuffix;
+    if (msState[oldKey] !== undefined && document.getElementById('msw-' + newKey)) {
+      msState[newKey] = msState[oldKey] instanceof Set ? new Set(msState[oldKey]) : msState[oldKey];
+      updateMsUI(newKey);
+    }
+  });
+
+  // Add Filters panel: MBL Type / HBL Type plain selects
+  ['af-mbl-', 'af-hbl-'].forEach(prefix => {
+    const oldEl = document.getElementById(prefix + oldSuffix);
+    const newEl = document.getElementById(prefix + newSuffix);
+    if (oldEl && newEl) newEl.value = oldEl.value;
+  });
+}
+
 function setPage(pageId, title, group, el) {
   // Hide the landing illustration if it's still showing (e.g. a System item
   // clicked directly from the home page, before any LOB/direction was picked)
@@ -5470,11 +5518,13 @@ function setPage(pageId, title, group, el) {
 
   // Move active filter bar to topbar — restore previous one first
   const filterRow = document.getElementById('tb-filter-row');
+  let prevDivIdForSync = null;
   if (filterRow) {
     // Restore any previously moved filter bar back to its page
     const prev = filterRow.querySelector('.filter-bar');
     if (prev && prev.dataset.pageId) {
       const prevDivId = pageIdMap[prev.dataset.pageId] || prev.dataset.pageId;
+      prevDivIdForSync = prevDivId;
       const prevPage = document.getElementById('page-' + prevDivId);
       if (prevPage) prevPage.insertBefore(prev, prevPage.firstChild);
     }
@@ -5492,6 +5542,10 @@ function setPage(pageId, title, group, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   // Map Indonesia page IDs to existing div IDs
   const divId = pageIdMap[pageId] || pageId;
+  // Carry the Report View date range and Add Filters (Zone/Branch/Owner/MBL/HBL)
+  // over from whichever page was active before, so filters stay universal
+  // across pages instead of resetting per page, until explicitly changed again
+  if (prevDivIdForSync && prevDivIdForSync !== divId) syncUniversalFilters(prevDivIdForSync, divId);
   const targetPage = document.getElementById('page-' + divId);
   targetPage.classList.add('active');
   // Clear any stale inline display:none left over from hidePages()/railExpand(),

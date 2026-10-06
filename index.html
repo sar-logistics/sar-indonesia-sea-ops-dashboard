@@ -4848,11 +4848,24 @@ function setDirection(dir) {
   document.getElementById(idPrefix + 'export')?.classList.toggle('active', dir === 'Export');
   document.getElementById(idPrefix + 'import')?.classList.toggle('active', dir === 'Import');
 
+  // Capture the LOB icon badge's position BEFORE the accordion collapses -
+  // this is the actual transition that needed fixing: the icon (anchor/
+  // plane/truck) travels from its spot in the expanded row into its spot
+  // in the collapsed icon rail, instead of one disappearing while a
+  // separate one appears in the rail.
+  const lobForFlip = currentLob;
+  const sourceBadge = document.querySelector('#lob-row-' + lobForFlip + ' .lob-row-icon-badge');
+  const fromRect = sourceBadge ? sourceBadge.getBoundingClientRect() : null;
+
   // Collapse the accordion, show the icon rail instead
   const navZone = document.getElementById('lob-nav-zone');
   if (navZone) navZone.classList.add('hidden-collapsed');
   const rail = document.getElementById('lob-icon-rail');
   if (rail) rail.classList.add('visible');
+
+  // Rail becomes display:flex immediately above (opacity fades in separately),
+  // so its layout is already measurable here even before the fade finishes
+  flipLobIconToRail(lobForFlip, fromRect);
 
   // Fade the landing illustration out smoothly, then reveal the report page
   // content once the fade completes, instead of an instant hard swap. The
@@ -4920,6 +4933,36 @@ function flipLogoToSidebar() {
   clone.style.width = toRect.width + 'px';
   clone.style.height = toRect.height + 'px';
   clone.style.filter = 'brightness(0) invert(1)';
+
+  setTimeout(() => clone.remove(), 420);
+}
+
+// FLIP animation for the LOB icon badge itself (anchor/plane/truck) -
+// travels from its position in the expanded accordion row to its position
+// in the collapsed icon rail. fromRect is captured by the caller BEFORE
+// the accordion collapses, since the source element's layout changes (or
+// the row may become hidden) once hidden-collapsed is applied.
+function flipLobIconToRail(lob, fromRect) {
+  const target = document.getElementById('rail-' + lob);
+  if (!fromRect || !target || fromRect.width === 0) return;
+
+  const toRect = target.getBoundingClientRect();
+  if (toRect.width === 0) return;
+
+  const sourceBadge = document.querySelector('#lob-row-' + lob + ' .lob-row-icon-badge');
+  const clone = sourceBadge ? sourceBadge.cloneNode(true) : target.cloneNode(true);
+  clone.style.cssText = `position:fixed;top:${fromRect.top}px;left:${fromRect.left}px;width:${fromRect.width}px;height:${fromRect.height}px;z-index:9999;pointer-events:none;margin:0;border-radius:50%;background:rgba(255,255,255,.24);display:flex;align-items:center;justify-content:center;transition:top .4s cubic-bezier(.4,0,.2,1),left .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1),height .4s cubic-bezier(.4,0,.2,1),border-radius .4s ease,background .4s ease`;
+  document.body.appendChild(clone);
+
+  void clone.offsetWidth;
+
+  const targetStyle = getComputedStyle(target);
+  clone.style.top = toRect.top + 'px';
+  clone.style.left = toRect.left + 'px';
+  clone.style.width = toRect.width + 'px';
+  clone.style.height = toRect.height + 'px';
+  clone.style.borderRadius = targetStyle.borderRadius;
+  clone.style.background = targetStyle.backgroundColor;
 
   setTimeout(() => clone.remove(), 420);
 }

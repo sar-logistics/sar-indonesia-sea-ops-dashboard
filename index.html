@@ -2572,6 +2572,7 @@ let currentDirection = 'Export'; // 'Export' or 'Import'
  
 let allJPA = [];
 let rawJPA = [];
+let opsMapping = [];
 let allUsers = [];
 let dateViews = {};
 let groupStates = { grpJob: false, grpRCP: false, grpInv: false, grpAMS: false, grpMBLHBL: false, grpHBLTrack: false };
@@ -4911,6 +4912,7 @@ async function refreshData(pageId) {
     updateRateLabel();
     rawJPA    = [];
     allUsers  = data.users      || [];
+    opsMapping = [];
     allSRR   = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase());
     allJPA   = [];
     // Load WIP data
@@ -5833,6 +5835,7 @@ async function loadData() {
     rawSRR     = data.records    || [];
     rawJPA     = [];
     allUsers   = data.users      || [];
+    opsMapping = [];
     // Filter by current direction
     allSRR = rawSRR.filter(r => (r.direction || '').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
     allJPA = [...rawJPA];
@@ -6163,62 +6166,79 @@ function applyRLS() {
   const isManager    = currentRole === 'Manager';
   const isTeamLeader = currentRole === 'Team Leader';
 
-  // Nav visibility — unchanged, still based on the role label itself (a
-  // permissions concern, separate from data scoping below)
+  // Nav visibility
   document.getElementById('sys-admin').style.display  = isAdmin ? 'flex' : 'none';
   document.getElementById('sys-teams').style.display  = (isAdmin || isHR || isOpsHead) ? 'flex' : 'none';
   document.getElementById('sys-usage').style.display  = (isAdmin || isHR || isOpsHead || isManager || isTeamLeader) ? 'flex' : 'none';
   document.getElementById('sys-feedback').style.display = isAdmin ? 'flex' : 'none';
 
-  // Data scoping — Admin is the only bypass. Every other role (HR, Ops Head,
-  // Manager, Team Leader, Job Owner, Docs, CS, or anything added later) is
-  // scoped purely by name + reporting-to position in allUsers, ignoring the
-  // role/persona label entirely. Whoever sits at the top of the reporting
-  // chain (e.g. an Ops Head with everyone reporting up to them) naturally
-  // ends up seeing everyone underneath - no special-case needed for that.
-  if (isAdmin) {
+  if (isAdmin || isHR || isOpsHead) {
     allSRR = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
     allJPA = [...rawJPA];
     return;
   }
 
+  // Build visible job owner names from reporting hierarchy
   const email = (currentUser.email || '').toLowerCase().trim();
   const visibleJobOwners = getVisibleJobOwners(email);
 
-  allSRR = rawSRR.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()) && (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
-  allJPA = rawJPA.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()));
+  if (visibleJobOwners === 'ALL') {
+    allSRR = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    allJPA = [...rawJPA];
+  } else if (visibleJobOwners.size > 0) {
+    allSRR = rawSRR.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()) && (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    allJPA = rawJPA.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()));
+  } else {
+    const joName = (currentUserDoc && currentUserDoc.jobOwnerName || currentUser.name || '').toLowerCase().trim();
+    allSRR = rawSRR.filter(r => (r.jobOwner || '').toLowerCase().trim() === joName && (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    allJPA = rawJPA.filter(r => (r.jobOwner || '').toLowerCase().trim() === joName);
+  }
 }
 
 function getVisibleJobOwners(email) {
-  // Returns a Set of visible jobOwner names (lowercased) - this person's own
-  // name plus anyone reporting up to them, recursively, walking the real
-  // reportingManager field already stored on each allUsers document (the
-  // same field the Admin Panel and Teams org-chart already use). No persona/
-  // role branching here at all - deliberately uniform for every role.
-  if (!allUsers || !allUsers.length) return new Set();
+  // Returns Set of visible jobOwner names (lowercased), or 'ALL' for full access
+  if (!opsMapping || !opsMapping.length) return 'ALL';
 
-  const me = allUsers.find(u => (u.email || '').toLowerCase().trim() === email);
+  // Find this user in opsMapping — could be a Job Owner or a Reporting To
+  const asJobOwner = opsMapping.filter(r =>
+    (r.jobOwnerEmail || '').toLowerCase().trim() === email
+  );
+  const asReportingTo = opsMapping.filter(r =>
+    (r.reportingToEmail || '').toLowerCase().trim() === email
+  );
+
+  if (asReportingTo.length === 0 && asJobOwner.length === 0) {
+    // Not found in hierarchy — show only own data via jobOwnerName
+    return new Set();
+  }
+
+  if (asJobOwner.length > 0 && asReportingTo.length === 0) {
+    // Pure Job Owner — sees only themselves
+    const names = new Set(asJobOwner.map(r => (r.jobOwner || '').toLowerCase().trim()));
+    return names;
+  }
+
+  // This person is a Reporting To (Team Leader / Manager / Ops Head)
+  // Collect all job owners who directly report to this email
   const visible = new Set();
 
-  const myOwnName = (me && (me.jobOwnerName || me.name) || currentUser.name || '').toLowerCase().trim();
-  if (myOwnName) visible.add(myOwnName);
-
-  function collectReports(managerEmail, depth) {
+  function collectReports(reportingEmail, depth) {
     if (depth > 5) return; // safety limit
-    allUsers.forEach(u => {
-      if ((u.reportingManager || '').toLowerCase().trim() === managerEmail) {
-        const name = (u.jobOwnerName || u.name || '').toLowerCase().trim();
-        if (name && !visible.has(name)) {
-          visible.add(name);
-          const theirEmail = (u.email || '').toLowerCase().trim();
-          if (theirEmail) collectReports(theirEmail, depth + 1);
+    opsMapping.forEach(r => {
+      if ((r.reportingToEmail || '').toLowerCase().trim() === reportingEmail) {
+        const joName = (r.jobOwner || '').toLowerCase().trim();
+        const joEmail = (r.jobOwnerEmail || '').toLowerCase().trim();
+        if (!visible.has(joName)) {
+          visible.add(joName);
+          // If this person is also a Reporting To for others, recurse
+          if (joEmail) collectReports(joEmail, depth + 1);
         }
       }
     });
   }
 
   collectReports(email, 0);
-  return visible;
+  return visible.size > 0 ? visible : 'ALL';
 }
 
 // ── USAGE LOG ────────────────────────────────────────────────

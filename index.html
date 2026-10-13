@@ -5757,7 +5757,11 @@ function updateDvFoot() {
 function updateDvCounts() {
   const total    = dvTabRecords.length;
   const filtered = dvFiltered.length;
-  document.getElementById('dvCount').textContent = filtered.toLocaleString() + ' shipments';
+  const isWip = dvFiltered.length > 0 && dvFiltered[0].chargeType !== undefined;
+  const countLabel = isWip
+    ? (new Set(dvFiltered.map(r => r.shipmentId)).size) + ' unique shipments, ' + filtered.toLocaleString() + ' items'
+    : filtered.toLocaleString() + ' shipments';
+  document.getElementById('dvCount').textContent = countLabel;
   const hasFilter = dvCols.some(c => {
     const v = dvColFilters[c.key];
     return v === null || (v instanceof Set && v.size > 0);

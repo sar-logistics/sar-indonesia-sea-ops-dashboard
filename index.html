@@ -5729,15 +5729,10 @@ function updateDvFoot() {
   tfoot.innerHTML = `<tr>${dvCols.map((c, i) => {
     const align = (c.num || c.pct) ? ' style="text-align:right"' : '';
     if (i === 0) {
-      // For WIP pages show unique shipment count, plus the line-item count
-      // alongside it - a shipment count alone is confusing when shipments
-      // have multiple charge lines, since it doesn't say how many rows
-      // those shipments actually span
+      // For WIP pages show unique shipment count
       const isWip = rows.length > 0 && rows[0].chargeType !== undefined;
       const count = isWip ? new Set(rows.map(r => r.shipmentId)).size : rows.length;
-      const label = isWip
-        ? count + ' unique shipment' + (count !== 1 ? 's' : '') + ', ' + rows.length + ' item' + (rows.length !== 1 ? 's' : '')
-        : count.toLocaleString();
+      const label = isWip ? count + ' unique shipment' + (count !== 1 ? 's' : '') : count.toLocaleString();
       return `<td>TOTAL (${label})</td>`;
     }
     if (c.num && sums[c.key] !== undefined) {
@@ -5759,7 +5754,7 @@ function updateDvCounts() {
   const filtered = dvFiltered.length;
   const isWip = dvFiltered.length > 0 && dvFiltered[0].chargeType !== undefined;
   const countLabel = isWip
-    ? (new Set(dvFiltered.map(r => r.shipmentId)).size) + ' unique shipments, ' + filtered.toLocaleString() + ' items'
+    ? filtered.toLocaleString() + ' item' + (filtered !== 1 ? 's' : '')
     : filtered.toLocaleString() + ' shipments';
   document.getElementById('dvCount').textContent = countLabel;
   const hasFilter = dvCols.some(c => {

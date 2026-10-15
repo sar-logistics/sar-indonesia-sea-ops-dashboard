@@ -998,12 +998,10 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
             <div class="lob-sub-wrap"><div class="lob-sub-inner">
               <div class="lob-sub-item" id="dir-sub-export" onclick="event.stopPropagation();setDirection('Export')">
                 <div class="lob-sub-name" style="flex:1">Sea Export</div>
-                <span class="lob-sub-count" id="dir-exp-count">—</span>
                 <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
               </div>
               <div class="lob-sub-item" id="dir-sub-import" onclick="event.stopPropagation();setDirection('Import')">
                 <div class="lob-sub-name" style="flex:1">Sea Import</div>
-                <span class="lob-sub-count" id="dir-imp-count">—</span>
                 <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
               </div>
             </div></div>
@@ -1019,12 +1017,10 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
             <div class="lob-sub-wrap"><div class="lob-sub-inner">
               <div class="lob-sub-item" id="dir-sub-air-export" onclick="event.stopPropagation();setDirection('Export')">
                 <div class="lob-sub-name" style="flex:1">Air Export</div>
-                <span class="lob-sub-count" id="dir-air-exp-count">—</span>
                 <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
               </div>
               <div class="lob-sub-item" id="dir-sub-air-import" onclick="event.stopPropagation();setDirection('Import')">
                 <div class="lob-sub-name" style="flex:1">Air Import</div>
-                <span class="lob-sub-count" id="dir-air-imp-count">—</span>
                 <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
               </div>
             </div></div>
@@ -1040,12 +1036,10 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
             <div class="lob-sub-wrap"><div class="lob-sub-inner">
               <div class="lob-sub-item" id="dir-sub-road-export" onclick="event.stopPropagation();setDirection('Export')">
                 <div class="lob-sub-name" style="flex:1">Roadways Export</div>
-                <span class="lob-sub-count" id="dir-road-exp-count">—</span>
                 <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
               </div>
               <div class="lob-sub-item" id="dir-sub-road-import" onclick="event.stopPropagation();setDirection('Import')">
                 <div class="lob-sub-name" style="flex:1">Roadways Import</div>
-                <span class="lob-sub-count" id="dir-road-imp-count">—</span>
                 <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
               </div>
             </div></div>
@@ -2537,27 +2531,9 @@ function refreshForDirection(dir) {
 }
 
 function updateDirCounts() {
-  const isAir  = l => (l||'').toString().trim().toUpperCase().endsWith('A');
-  const isSea  = l => (l||'').toString().trim().toUpperCase().endsWith('S');
-  const isRoad = l => (l||'').toString().trim().toUpperCase().endsWith('R');
-  const expCount     = rawSRR.filter(r => (r.direction||'').toLowerCase() === 'export' && (isSea(r.lob) || !r.lob)).length;
-  const impCount     = rawSRR.filter(r => (r.direction||'').toLowerCase() === 'import' && (isSea(r.lob) || !r.lob)).length;
-  const airExpCount  = rawSRR.filter(r => (r.direction||'').toLowerCase() === 'export' && isAir(r.lob)).length;
-  const airImpCount  = rawSRR.filter(r => (r.direction||'').toLowerCase() === 'import' && isAir(r.lob)).length;
-  const roadExpCount = rawSRR.filter(r => (r.direction||'').toLowerCase() === 'export' && isRoad(r.lob)).length;
-  const roadImpCount = rawSRR.filter(r => (r.direction||'').toLowerCase() === 'import' && isRoad(r.lob)).length;
-  const expEl = document.getElementById('dir-exp-count');
-  const impEl = document.getElementById('dir-imp-count');
-  const airExpEl = document.getElementById('dir-air-exp-count');
-  const airImpEl = document.getElementById('dir-air-imp-count');
-  const roadExpEl = document.getElementById('dir-road-exp-count');
-  const roadImpEl = document.getElementById('dir-road-imp-count');
-  if (expEl) expEl.textContent = expCount.toLocaleString() + ' jobs';
-  if (impEl) impEl.textContent = impCount.toLocaleString() + ' jobs';
-  if (airExpEl) airExpEl.textContent = airExpCount.toLocaleString() + ' jobs';
-  if (airImpEl) airImpEl.textContent = airImpCount.toLocaleString() + ' jobs';
-  if (roadExpEl) roadExpEl.textContent = roadExpCount.toLocaleString() + ' jobs';
-  if (roadImpEl) roadImpEl.textContent = roadImpCount.toLocaleString() + ' jobs';
+  // Job-count badges removed from all LOB Export/Import rows, per
+  // request - this function is now a no-op kept only so existing calls
+  // elsewhere in the code don't need to be tracked down and removed too
 }
 
 function updateTopbarLabel() {

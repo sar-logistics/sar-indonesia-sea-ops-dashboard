@@ -6832,7 +6832,17 @@ const SUMMARY_REPORTS = [
     title:   'Open Jobs',
     color:   '#dc2626',
     okColor: '#16a34a',
-    flag:    r => !['CMP','CLS'].includes((r.jobStatus||'').toUpperCase()),
+    // Matches renderOpenJobs()'s own definition exactly: open AND ETD more
+    // than 7 days old - jobs shipped within the last 7 days are expected to
+    // still be open, that's normal, so they're not flagged here either
+    flag:    r => {
+      if (['CMP','CLS'].includes((r.jobStatus||'').toUpperCase())) return false;
+      const ojCutoff = new Date();
+      ojCutoff.setHours(0,0,0,0);
+      ojCutoff.setDate(ojCutoff.getDate() - 7);
+      const etd = r.etdDate ? new Date(r.etdDate) : null;
+      return etd && etd < ojCutoff;
+    },
   },
   {
     id:      'revenue-not-billed',

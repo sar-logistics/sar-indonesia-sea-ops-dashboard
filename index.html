@@ -7429,9 +7429,19 @@ function renderSummary() {
       if (!ck || totals[ck] === undefined) return;
       totals[ck]++;
       let isFlagged;
-      if (report.id === 'revenue-not-billed') isFlagged = !!wipRevFlagged[r.shipmentId];
-      else if (report.id === 'cost-not-posted') isFlagged = !!wipCostFlagged[r.shipmentId];
-      else isFlagged = report.flag(r);
+      const etd = r.etdDate ? new Date(r.etdDate) : null;
+      if (report.id === 'revenue-not-billed') {
+        // Matches renderUnbilledRev()'s own grace period exactly: WIP > 0 AND
+        // ETD older than 3 days (jobs shipped within the last 3 days are
+        // still inside the normal billing grace window)
+        const urCutoff = new Date(); urCutoff.setHours(0,0,0,0); urCutoff.setDate(urCutoff.getDate() - 3);
+        isFlagged = !!wipRevFlagged[r.shipmentId] && etd && etd < urCutoff;
+      } else if (report.id === 'cost-not-posted') {
+        // Matches renderUnpostedCost()'s own grace period exactly: accrual
+        // !== 0 AND ETD older than 7 days
+        const ucCutoff = new Date(); ucCutoff.setHours(0,0,0,0); ucCutoff.setDate(ucCutoff.getDate() - 7);
+        isFlagged = !!wipCostFlagged[r.shipmentId] && etd && etd < ucCutoff;
+      } else isFlagged = report.flag(r);
       if (isFlagged) {
         flags[ck]++;
         if (report.id === 'revenue-not-billed') flagAmounts[ck] += (wipRevAmount[r.shipmentId] || 0);

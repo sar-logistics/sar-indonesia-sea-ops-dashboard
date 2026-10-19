@@ -1289,26 +1289,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-dropdown" id="msd-owner-summary"></div>
                 </div>
               </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">MBL Type</div>
-                <select class="add-filter-select" id="af-mbl-summary" onchange="renderSummary()">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
-              </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-summary" onchange="renderSummary()">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="Domestic Freight">Domestic Freight</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
-              </div>
             </div>
           </div>
           <button class="dv-btn" onclick="refreshData('summary')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
@@ -1385,19 +1365,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-trigger" onclick="toggleMs('owner-open-jobs')" style="width:100%;box-sizing:border-box"><i class="ti ti-user ms-icon"></i><span class="ms-label" id="msl-owner-open-jobs">All Owners</span><i class="ti ti-chevron-down ms-caret"></i></div>
                   <div class="ms-dropdown" id="msd-owner-open-jobs"></div>
                 </div>
-              </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">MBL Type</div>
-                <select class="add-filter-select" id="af-mbl-open-jobs" onchange="renderPage('open-jobs')">
-                  <option value="">All</option><option value="Prepaid">Prepaid</option><option value="Collect">Collect</option><option value="(blank)">(blank)</option>
-                </select>
-              </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-open-jobs" onchange="renderPage('open-jobs')">
-                  <option value="">All</option><option value="Prepaid">Prepaid</option><option value="Collect">Collect</option><option value="Domestic Freight">Domestic Freight</option><option value="(blank)">(blank)</option>
-                </select>
               </div>
             </div>
           </div>
@@ -1509,19 +1476,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-dropdown" id="msd-owner-total-jobs"></div>
                 </div>
               </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">MBL Type</div>
-                <select class="add-filter-select" id="af-mbl-total-jobs" onchange="renderPage('total-jobs')">
-                  <option value="">All</option><option value="Prepaid">Prepaid</option><option value="Collect">Collect</option><option value="(blank)">(blank)</option>
-                </select>
-              </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-total-jobs" onchange="renderPage('total-jobs')">
-                  <option value="">All</option><option value="Prepaid">Prepaid</option><option value="Collect">Collect</option><option value="Domestic Freight">Domestic Freight</option><option value="(blank)">(blank)</option>
-                </select>
-              </div>
             </div>
           </div>
           <button class="dv-btn" onclick="refreshData('total-jobs')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
@@ -1613,26 +1567,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-trigger" onclick="toggleMs('owner-unbilled-rev')" style="width:100%;box-sizing:border-box"><i class="ti ti-user ms-icon"></i><span class="ms-label" id="msl-owner-unbilled-rev">All Owners</span><i class="ti ti-chevron-down ms-caret"></i></div>
                   <div class="ms-dropdown" id="msd-owner-unbilled-rev"></div>
                 </div>
-              </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">MBL Type</div>
-                <select class="add-filter-select" id="af-mbl-unbilled-rev" onchange="renderPage('unbilled-rev')">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
-              </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-unbilled-rev" onchange="renderPage('unbilled-rev')">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="Domestic Freight">Domestic Freight</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
               </div>
               <div class="add-filter-row">
                 <div class="add-filter-label">Operation Lock Condition</div>
@@ -1752,26 +1686,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-trigger" onclick="toggleMs('owner-unposted-cost')" style="width:100%;box-sizing:border-box"><i class="ti ti-user ms-icon"></i><span class="ms-label" id="msl-owner-unposted-cost">All Owners</span><i class="ti ti-chevron-down ms-caret"></i></div>
                   <div class="ms-dropdown" id="msd-owner-unposted-cost"></div>
                 </div>
-              </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">MBL Type</div>
-                <select class="add-filter-select" id="af-mbl-unposted-cost" onchange="renderPage('unposted-cost')">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
-              </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-unposted-cost" onchange="renderPage('unposted-cost')">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="Domestic Freight">Domestic Freight</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
               </div>
               <div class="add-filter-row">
                 <div class="add-filter-label">Operation Lock Condition</div>
@@ -1913,26 +1827,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-trigger" onclick="toggleMs('owner-low-profit')" style="width:100%;box-sizing:border-box"><i class="ti ti-user ms-icon"></i><span class="ms-label" id="msl-owner-low-profit">All Owners</span><i class="ti ti-chevron-down ms-caret"></i></div>
                   <div class="ms-dropdown" id="msd-owner-low-profit"></div>
                 </div>
-              </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">MBL Type</div>
-                <select class="add-filter-select" id="af-mbl-low-profit" onchange="renderPage('low-profit')">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
-              </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-low-profit" onchange="renderPage('low-profit')">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="Domestic Freight">Domestic Freight</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
               </div>
             </div>
           </div>

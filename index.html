@@ -916,6 +916,13 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
 /* Expand/Collapse buttons */
 .ec-btn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--text2);background:#fff;cursor:pointer;transition:background .12s}
 .ec-btn:hover{background:var(--bg);color:var(--text1)}
+.tgl-switch{position:relative;display:inline-block;width:38px;height:21px;flex-shrink:0}
+.tgl-switch input{opacity:0;width:0;height:0}
+.tgl-track{position:absolute;inset:0;background:#d1dae3;border-radius:999px;cursor:pointer;transition:background .18s ease}
+.tgl-track::before{content:"";position:absolute;height:17px;width:17px;left:2px;top:2px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(15,31,46,.25);transition:transform .18s ease}
+.tgl-switch input:checked + .tgl-track{background:var(--accent)}
+.tgl-switch input:checked + .tgl-track::before{transform:translateX(17px)}
+.tgl-switch input:focus-visible + .tgl-track{outline:2px solid var(--accent-border);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -1627,25 +1634,30 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <option value="(blank)">(blank)</option>
                 </select>
               </div>
+              <div class="add-filter-row">
+                <div class="add-filter-label">Operation Lock Condition</div>
+                <label style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text2);cursor:pointer">
+                  <span class="tgl-switch">
+                    <input type="checkbox" id="chk-ur-require-ops-lock" onchange="toggleUbRequireOpsLock(this)">
+                    <span class="tgl-track"></span>
+                  </span>
+                  Require Ops Lock = Yes
+                </label>
+              </div>
             </div>
           </div>
           <button class="dv-btn" onclick="refreshData('unbilled-rev')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
         </div>
-        <div class="kpi-row">
+        <div class="kpi-row" style="grid-template-columns:repeat(2,minmax(0,1fr))">
           <div class="kpi blue">
-            <div class="kpi-top"><i class="kpi-icon-sm ti ti-chart-bar blue"></i><span class="kpi-lbl">Total Jobs</span></div>
+            <div class="kpi-top"><i class="kpi-icon-sm ti ti-cash blue"></i><span class="kpi-lbl">Total Unbilled Amount</span></div>
             <div class="kpi-val blue" id="kv-ur-total">—</div>
-            <div class="kpi-sub" id="kv-ur-period">All jobs in period</div>
+            <div class="kpi-sub" id="kv-ur-period">Across flagged jobs</div>
           </div>
           <div class="kpi orange">
-            <div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Unbilled Revenue Jobs</span></div>
+            <div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Count of Unbilled Revenue</span></div>
             <div class="kpi-val orange" id="kv-ur-flagged">—</div>
             <div class="kpi-sub">Unbilled Revenue ≠ 0</div>
-          </div>
-          <div class="kpi red">
-            <div class="kpi-top"><i class="kpi-icon-sm ti ti-percentage red"></i><span class="kpi-lbl">% of such jobs</span></div>
-            <div class="kpi-val red" id="kv-ur-pct">—</div>
-            <div class="kpi-sub" id="kv-ur-pct-sub">% of total jobs</div>
           </div>
         </div>
         <div class="sec-hd">
@@ -1653,8 +1665,15 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div style="display:flex;align-items:center;gap:6px">
             <div class="sec-ct" id="sc-unbilled-rev">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
-            <button class="ec-btn" onclick="expandAll('unbilled-rev')"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
-            <button class="ec-btn" onclick="collapseAll('unbilled-rev')"><i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All</button>
+            <button class="ec-btn" onclick="expandAll('unbilled-rev')" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
+            <button class="ec-btn" onclick="collapseAll('unbilled-rev')" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All</button>
+            <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
+              <span class="tgl-switch">
+                <input type="checkbox" id="ub-viewmode-chk" onchange="toggleUbViewMode(this)">
+                <span class="tgl-track"></span>
+              </span>
+              View by <span id="ub-viewmode-lbl">Count</span>
+            </label>
           </div>
         </div>
         <div class="tbl-wrap">
@@ -1754,25 +1773,30 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <option value="(blank)">(blank)</option>
                 </select>
               </div>
+              <div class="add-filter-row">
+                <div class="add-filter-label">Operation Lock Condition</div>
+                <label style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text2);cursor:pointer">
+                  <span class="tgl-switch">
+                    <input type="checkbox" id="chk-uc-require-ops-lock" onchange="toggleUcRequireOpsLock(this)">
+                    <span class="tgl-track"></span>
+                  </span>
+                  Require Ops Lock = Yes
+                </label>
+              </div>
             </div>
           </div>
           <button class="dv-btn" onclick="refreshData('unposted-cost')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
         </div>
-        <div class="kpi-row">
+        <div class="kpi-row" style="grid-template-columns:repeat(2,minmax(0,1fr))">
           <div class="kpi blue">
-            <div class="kpi-top"><i class="kpi-icon-sm ti ti-chart-bar blue"></i><span class="kpi-lbl">Total Jobs</span></div>
+            <div class="kpi-top"><i class="kpi-icon-sm ti ti-cash blue"></i><span class="kpi-lbl">Total Unposted Amount</span></div>
             <div class="kpi-val blue" id="kv-uc-total">—</div>
-            <div class="kpi-sub" id="kv-uc-period">All jobs in period</div>
+            <div class="kpi-sub" id="kv-uc-period">Across flagged jobs</div>
           </div>
           <div class="kpi orange">
-            <div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Unposted Cost Jobs</span></div>
+            <div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Count of Unposted Cost</span></div>
             <div class="kpi-val orange" id="kv-uc-flagged">—</div>
             <div class="kpi-sub">Unposted Cost ≠ 0</div>
-          </div>
-          <div class="kpi red">
-            <div class="kpi-top"><i class="kpi-icon-sm ti ti-percentage red"></i><span class="kpi-lbl">% of such jobs</span></div>
-            <div class="kpi-val red" id="kv-uc-pct">—</div>
-            <div class="kpi-sub" id="kv-uc-pct-sub">% of total jobs</div>
           </div>
         </div>
         <div class="sec-hd">
@@ -1780,8 +1804,15 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div style="display:flex;align-items:center;gap:6px">
             <div class="sec-ct" id="sc-unposted-cost">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
-            <button class="ec-btn" onclick="expandAll('unposted-cost')"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
-            <button class="ec-btn" onclick="collapseAll('unposted-cost')"><i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All</button>
+            <button class="ec-btn" onclick="expandAll('unposted-cost')" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
+            <button class="ec-btn" onclick="collapseAll('unposted-cost')" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All</button>
+            <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
+              <span class="tgl-switch">
+                <input type="checkbox" id="uc-viewmode-chk" onchange="toggleUcViewMode(this)">
+                <span class="tgl-track"></span>
+              </span>
+              View by <span id="uc-viewmode-lbl">Count</span>
+            </label>
           </div>
         </div>
         <div class="tbl-wrap">
@@ -3608,7 +3639,7 @@ function fmtNum(n, records, title, sub) {
 
 // Build per-column clickable cells with their own record arrays
 // counts: { colKey: count }, recs: records for this scope, cols: column defs, colKeyFn: r→colKey
-function colCells(counts, recs, cols, colKeyFn, titlePfx, label, colSet) {
+function colCells(counts, recs, cols, colKeyFn, titlePfx, label, colSet, isAmount) {
   // Bucket records by time-column key
   const bucket = {};
   cols.forEach(c => { bucket[c.key] = []; });
@@ -3621,13 +3652,14 @@ function colCells(counts, recs, cols, colKeyFn, titlePfx, label, colSet) {
     const rs = bucket[c.key] || [];
     const t = (titlePfx + ' — ' + c.label).replace(/'/g, "\\'");
     const s = label.replace(/'/g, "\\'");
+    const disp = isAmount ? fmtIndian(n) : n.toLocaleString();
     if (n === 0) return '<td style="text-align:right"><span class="dash">—</span></td>';
     if (rs.length) {
       const id = dvReg(rs);
       const cs = colSet ? `,'${colSet}'` : '';
-      return `<td style="text-align:right"><span style="cursor:pointer;font-weight:500;color:var(--accent)" onclick="dvOpen('${id}','${t}','${s}'${cs})">${n.toLocaleString()}</span></td>`;
+      return `<td style="text-align:right"><span style="cursor:pointer;font-weight:500;color:var(--accent)" onclick="dvOpen('${id}','${t}','${s}'${cs})">${disp}</span></td>`;
     }
-    return `<td style="text-align:right">${n.toLocaleString()}</td>`;
+    return `<td style="text-align:right">${disp}</td>`;
   }).join('');
 }
 
@@ -4251,8 +4283,35 @@ function _renderSRRFlaggedWip(pageId, s, flagLabel, label, view, cols, filteredD
   const flaggedCount = flaggedDD.length;
   const pct = totalJobs > 0 ? ((flaggedCount / totalJobs) * 100).toFixed(1) : '0.0';
 
+  // Amount per job = sum of that job's WIP lines (Revenue Not Billed: 'wip', Cost Not Posted: 'accrual').
+  // Same fields (and the same fmtIndian formatter) the drill-down shows, so the numbers always agree.
+  const amtField = s === 'ur' ? 'wip' : 'accrual';
+  const jobAmt = r => (wipByShipment[r.shipmentId] || []).reduce((a, w) => a + (Number(w[amtField]) || 0), 0);
+  const isAmountMode = (s === 'ur' && ubViewMode === 'amount') || (s === 'uc' && ucViewMode === 'amount');
+  const gridVal = r => isAmountMode ? jobAmt(r) : 1;
+  // Keep the switches in step with state after every render (survives navigating away and back)
+  if (s === 'ur') {
+    const vmChk = document.getElementById('ub-viewmode-chk'); if (vmChk) vmChk.checked = ubViewMode === 'amount';
+    const vmLbl = document.getElementById('ub-viewmode-lbl'); if (vmLbl) vmLbl.textContent = ubViewMode === 'amount' ? 'Amount' : 'Count';
+    const olChk = document.getElementById('chk-ur-require-ops-lock'); if (olChk) olChk.checked = urRequireOpsLock;
+  }
+  if (s === 'uc') {
+    const vmChk = document.getElementById('uc-viewmode-chk'); if (vmChk) vmChk.checked = ucViewMode === 'amount';
+    const vmLbl = document.getElementById('uc-viewmode-lbl'); if (vmLbl) vmLbl.textContent = ucViewMode === 'amount' ? 'Amount' : 'Count';
+    const olChk = document.getElementById('chk-uc-require-ops-lock'); if (olChk) olChk.checked = ucRequireOpsLock;
+  }
+
   const kTotal = document.getElementById('kv-' + s + '-total');
-  if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label); }
+  if (kTotal) {
+    if (s === 'ur' || s === 'uc') {
+      // First KPI is now the TOTAL AMOUNT across the flagged jobs instead of a job count; the second card has the count
+      kTotal.textContent = fmtIndian(flaggedDD.reduce((a, r) => a + jobAmt(r), 0));
+      kTotal.style.cursor = 'pointer';
+      kTotal.onclick = () => openDrillWip(flaggedDD, wipByShipment, flagLabel, label, false, colSet);
+    } else {
+      kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label);
+    }
+  }
   const kFlagged = document.getElementById('kv-' + s + '-flagged');
   if (kFlagged) { kFlagged.textContent = flaggedCount.toLocaleString(); kFlagged.style.cursor='pointer'; kFlagged.onclick=()=>openDrillWip(flaggedDD, wipByShipment, flagLabel, label, false, colSet); }
   const kPct = document.getElementById('kv-' + s + '-pct');
@@ -4276,7 +4335,7 @@ function _renderSRRFlaggedWip(pageId, s, flagLabel, label, view, cols, filteredD
     const ck = wipLines.length ? (getColKey(wipLines[0], view) || 'other') : (getColKey(r, view) || 'other');
     if (!flaggedMap[br]) flaggedMap[br] = {};
     if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
-    flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck] || 0) + 1;
+    flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck] || 0) + gridVal(r);
   });
 
   const gtFl = {}; cols.forEach(c => { gtFl[c.key] = 0; }); let gtFlGrand = 0;
@@ -4286,8 +4345,8 @@ function _renderSRRFlaggedWip(pageId, s, flagLabel, label, view, cols, filteredD
   flaggedDD.forEach(r => {
     const wipLines = wipByShipment[r.shipmentId] || [];
     const ck = wipLines.length ? (colKeyFn(wipLines[0]) || 'other') : (colKeyFn(r) || 'other');
-    if (gtFl[ck] !== undefined) gtFl[ck]++;
-    gtFlGrand++;
+    if (gtFl[ck] !== undefined) gtFl[ck] += gridVal(r);
+    gtFlGrand += gridVal(r);
     if (!cRFl[ck]) cRFl[ck] = [];
     cRFl[ck].push(r);
   });
@@ -4300,11 +4359,11 @@ function _renderSRRFlaggedWip(pageId, s, flagLabel, label, view, cols, filteredD
 
   const gtWipRecs = flaggedDD.flatMap(r => (wipByShipment[r.shipmentId] || []));
   const gtWipId = dvReg(gtWipRecs);
-  const gFTd = isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="openDrillWipById('${gtWipId}','Grand Total — ${flagLabel}','${label}','${colSet ? "colSet" : ""}')">${gtFlGrand > 0 ? gtFlGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`;
+  const gFTd = isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="openDrillWipById('${gtWipId}','Grand Total — ${flagLabel}','${label}','${colSet ? "colSet" : ""}')">${(isAmountMode ? gtFlGrand !== 0 : gtFlGrand > 0) ? (isAmountMode ? fmtIndian(gtFlGrand) : gtFlGrand.toLocaleString()) : '<span class="dash">—</span>'}</td>`;
 
   // For WIP pages, bucket by WIP lines (which have dd-MMM-yyyy dates) not SRR records
   const gtBucketRecs = gtWipRecs.length ? gtWipRecs : flaggedDD;
-  let h = `<tr class="gt-block"><td style="padding-left:10px"><i class="rc open" id="rc-gt-${s}" onclick="toggleRows('gt-${s}',event)">▼</i> <strong>GRAND TOTAL</strong></td>${gFTd}${colCells(gtFl, gtBucketRecs, cols, colKeyFn, 'Grand Total — ' + flagLabel, label)}</tr>
+  let h = `<tr class="gt-block"><td style="padding-left:10px"><i class="rc open" id="rc-gt-${s}" onclick="toggleRows('gt-${s}',event)">▼</i> <strong>GRAND TOTAL</strong></td>${gFTd}${colCells(gtFl, gtBucketRecs, cols, colKeyFn, 'Grand Total — ' + flagLabel, label, undefined, isAmountMode)}</tr>
   <tr class="gt-sep"><td colspan="${cols.length + (isSingle ? 1 : 2)}"></td></tr>`;
 
   Object.keys(flaggedMap).sort().forEach((br, bi) => {
@@ -4316,9 +4375,9 @@ function _renderSRRFlaggedWip(pageId, s, flagLabel, label, view, cols, filteredD
     const brFl = {}; cols.forEach(c => { brFl[c.key] = 0; }); let bFG = 0;
     Object.values(owMap).forEach(oc => { cols.forEach(c => { brFl[c.key] += (oc[c.key] || 0); }); bFG += Object.values(oc).reduce((a, b) => a + b, 0); });
     const av = `<span class="av" style="background:${avColor(br)}">${avInitials(br)}</span>`;
-    const bF = isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="openDrillWipById('${brWipId}','${safeBr} — ${flagLabel}','${label}')">${bFG > 0 ? bFG.toLocaleString() : '<span class="dash">—</span>'}</td>`;
+    const bF = isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="openDrillWipById('${brWipId}','${safeBr} — ${flagLabel}','${label}')">${(isAmountMode ? bFG !== 0 : bFG > 0) ? (isAmountMode ? fmtIndian(bFG) : bFG.toLocaleString()) : '<span class="dash">—</span>'}</td>`;
     const brBucketRecs = brWipRecs.length ? brWipRecs : brFlagRecs;
-    h += `<tr class="br-row"><td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>${bF}${colCells(brFl, brBucketRecs, cols, colKeyFn, safeBr + ' — ' + flagLabel, label)}</tr>`;
+    h += `<tr class="br-row"><td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>${bF}${colCells(brFl, brBucketRecs, cols, colKeyFn, safeBr + ' — ' + flagLabel, label, undefined, isAmountMode)}</tr>`;
     Object.keys(owMap).sort().forEach((ow, oi) => {
       const owKey = bKey + 'o' + oi, owC = owMap[ow] || {};
       const owFRecs = brFlagRecs.filter(r => (r.operator || r.jobOwner || '(Unknown)') === ow);
@@ -4327,9 +4386,9 @@ function _renderSRRFlaggedWip(pageId, s, flagLabel, label, view, cols, filteredD
       const safeOw = ow.replace(/'/g, "\'");
       let oFG = 0; cols.forEach(c => { oFG += (owC[c.key] || 0); });
       const oav = `<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
-      const jF = isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="openDrillWipById('${owWipId}','${safeOw} — ${flagLabel}','${label}')">${oFG > 0 ? oFG.toLocaleString() : '<span class="dash">—</span>'}</td>`;
+      const jF = isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="openDrillWipById('${owWipId}','${safeOw} — ${flagLabel}','${label}')">${(isAmountMode ? oFG !== 0 : oFG > 0) ? (isAmountMode ? fmtIndian(oFG) : oFG.toLocaleString()) : '<span class="dash">—</span>'}</td>`;
       const owBucketRecs = owWipRecs.length ? owWipRecs : owFRecs;
-      h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}"><td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Job Owner)</span></td>${jF}${colCells(owC, owBucketRecs, cols, colKeyFn, safeOw + ' — ' + flagLabel, label)}</tr>`;
+      h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}"><td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Job Owner)</span></td>${jF}${colCells(owC, owBucketRecs, cols, colKeyFn, safeOw + ' — ' + flagLabel, label, undefined, isAmountMode)}</tr>`;
     });
   });
 
@@ -4391,6 +4450,20 @@ function getColumnsFromRecords(records, pageId, view) {
   return cols;
 }
 
+// Count/Amount grid view + Require Ops Lock filter for the Revenue Not Billed and Cost Not Posted
+// pages (ported from the Air Ops dashboard). Ops Lock defaults to OFF on BOTH pages: these pages never
+// required an Ops Lock, so OFF keeps today's numbers exactly as they were.
+let ubViewMode = 'count';    // 'count' or 'amount' - Revenue Not Billed grid: job counts vs summed WIP amounts
+let ucViewMode = 'count';    // 'count' or 'amount' - Cost Not Posted grid: job counts vs summed accrual amounts
+let urRequireOpsLock = false; // Revenue Not Billed: only jobs that have an Operation Lock date
+let ucRequireOpsLock = false; // Cost Not Posted:    only jobs that have an Operation Lock date
+// A job counts as Ops-Locked when it has an Operation Lock date (the job's `operationLock` field)
+function isJobOpsLocked(r) { return !!(r && r.operationLock && String(r.operationLock).trim() !== ''); }
+function toggleUbViewMode(chkEl) { ubViewMode = chkEl.checked ? 'amount' : 'count'; renderPage('unbilled-rev'); }
+function toggleUcViewMode(chkEl) { ucViewMode = chkEl.checked ? 'amount' : 'count'; renderPage('unposted-cost'); }
+function toggleUrRequireOpsLock(chkEl) { urRequireOpsLock = chkEl.checked; renderPage('unbilled-rev'); }
+function toggleUcRequireOpsLock(chkEl) { ucRequireOpsLock = chkEl.checked; renderPage('unposted-cost'); }
+
 function renderUnbilledRev() {
   const pageId = 'unbilled-rev';
   const { cols, label, view } = getColumns(pageId);
@@ -4418,6 +4491,7 @@ function renderUnbilledRev() {
   // Flag shipments that have WIP > 0 AND ETD older than the cutoff
   const flaggedDD = filteredDD.filter(r => {
     if (!wipByShipment[r.shipmentId] || wipByShipment[r.shipmentId].length === 0) return false;
+    if (urRequireOpsLock && !isJobOpsLocked(r)) return false;
     const etd = r.etdDate ? new Date(r.etdDate) : null;
     return etd && etd < urCutoff;
   });
@@ -4453,6 +4527,7 @@ function renderUnpostedCost() {
   // Flag shipments that have accrual !== 0 AND ETD older than the cutoff
   const flaggedDD = filteredDD.filter(r => {
     if (!accrualByShipment[r.shipmentId] || accrualByShipment[r.shipmentId].length === 0) return false;
+    if (ucRequireOpsLock && !isJobOpsLocked(r)) return false;
     const etd = r.etdDate ? new Date(r.etdDate) : null;
     return etd && etd < ucCutoff;
   });

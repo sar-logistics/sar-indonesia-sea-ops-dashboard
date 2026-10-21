@@ -18,12 +18,17 @@ let cache = { data: null, builtAt: null };
 
 async function buildCache(db) {
   console.log('[TH-OPS] Building cache...');
-  const expDocs  = await db.collection('th_ops_export').find({}).toArray();
-  const impDocs  = await db.collection('th_ops_import').find({}).toArray();
-  const userDocs = await db.collection('users').find({}).toArray();
+  const expDocs   = await db.collection('th_ops_export').find({}).toArray();
+  const impDocs   = await db.collection('th_ops_import').find({}).toArray();
+  const userDocs  = await db.collection('users').find({}).toArray();
+  // Cross Trade kept as its own array rather than merged into allDocs -
+  // there's no dashboard page or direction filter wired up for it yet, so
+  // merging it in now would silently leak it into existing Export/Import
+  // filtering logic
+  const crossTradeDocs = await db.collection('id_ops_crosstrade').find({}).toArray();
   const allDocs  = [...expDocs, ...impDocs];
-  console.log(`[TH-OPS] Total docs: ${allDocs.length}, users: ${userDocs.length}`);
-  cache = { data: allDocs, users: userDocs, builtAt: new Date().toISOString() };
+  console.log(`[TH-OPS] Total docs: ${allDocs.length}, users: ${userDocs.length}, crossTrade: ${crossTradeDocs.length}`);
+  cache = { data: allDocs, users: userDocs, crossTrade: crossTradeDocs, builtAt: new Date().toISOString() };
   return cache;
 }
 
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
     if (action === 'wipe') {
       const c  = await getClient();
       const db = c.db(DB);
-      const colName = direction === 'Export' ? 'th_ops_export' : direction === 'Import' ? 'th_ops_import' : null;
+      const colName = direction === 'Export' ? 'th_ops_export' : direction === 'Import' ? 'th_ops_import' : direction === 'CrossTrade' ? 'id_ops_crosstrade' : null;
       if (!colName) return res.status(400).json({ error: 'Invalid direction' });
       const result = await db.collection(colName).deleteMany({});
       cache = { data: null, builtAt: null };
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
       if (!records || !records.length) return res.status(400).json({ error: 'No records' });
       const c  = await getClient();
       const db = c.db(DB);
-      const colName = direction === 'Export' ? 'th_ops_export' : 'th_ops_import';
+      const colName = direction === 'Export' ? 'th_ops_export' : direction === 'CrossTrade' ? 'id_ops_crosstrade' : 'th_ops_import';
       const result = await db.collection(colName).insertMany(records, { ordered: false });
       cache = { data: null, builtAt: null };
       return res.status(200).json({ inserted: result.insertedCount, direction });
@@ -72,7 +77,7 @@ export default async function handler(req, res) {
       }
       res.setHeader('X-Cache', 'HIT');
       res.setHeader('X-Cache-Age', Math.floor((new Date() - new Date(cache.builtAt)) / 1000));
-      return res.status(200).json({ records: cache.data, users: cache.users || [], builtAt: cache.builtAt });
+      return res.status(200).json({ records: cache.data, users: cache.users || [], crossTrade: cache.crossTrade || [], builtAt: cache.builtAt });
     } catch (e) {
       console.error(e);
       return res.status(500).json({ error: e.message });

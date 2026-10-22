@@ -2469,8 +2469,26 @@ function railExpand() {
   if (s) s.innerHTML = 'Choose Export or Import<br>from the left panel';
 }
 
+// Derives a record's true direction from its own lob value (2nd letter:
+// E=Export, I=Import - e.g. FES/FEA/FER vs FIS/FIA/FIR), since lob is
+// computed reliably by addLobCol()/addLobColCrossTrade() for every record.
+// Falls back to the raw direction field only when lob is missing or
+// doesn't end in a recognizable E/I letter - this matters for Cross Trade
+// specifically, whose raw "Direction" column can hold values like "Other/
+// Cross Trade" that never match a literal 'Export'/'Import' check, which
+// was silently excluding every Cross Trade record from every page.
+function getRecordDirection(r) {
+  const lob = (r.lob || '').toUpperCase();
+  if (lob.length >= 2) {
+    const c = lob.charAt(1);
+    if (c === 'E') return 'Export';
+    if (c === 'I') return 'Import';
+  }
+  return r.direction || '';
+}
+
 function refreshForDirection(dir) {
-  allSRR = rawSRR.filter(r => (r.direction || '').toLowerCase() === dir.toLowerCase() && matchesCurrentLob(r));
+  allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === dir.toLowerCase() && matchesCurrentLob(r));
   applyRLS();
   const activePage = document.querySelector('.nav-item.active');
   const activePageId = activePage?.getAttribute('onclick')?.match(/setPage\('([^']+)'/)?.[1] || 'summary';
@@ -3250,7 +3268,7 @@ function getDateRange(pageId) {
       label = MONTHS[fromState.selected.month] + ' ' + fromState.selected.year + ' → ' + MONTHS[toState.selected.month] + ' ' + toState.selected.year;
     } else {
       // Auto-detect from actual data (ignore invalid pre-2000 dates)
-      const dates = allSRR.map(r => { const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
+      const dates = allSRR.map(r => { const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
       if (dates.length) {
         const minD = new Date(Math.min(...dates.map(d => d.getTime())));
         const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
@@ -3285,7 +3303,7 @@ function getDateRange(pageId) {
   } else if (view === 'quarterly') {
     const qVal = Number(document.getElementById('quarter-' + pageId).value || 1);
     // Span all data so all FY columns are shown
-    const dates = allSRR.map(r => { const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
+    const dates = allSRR.map(r => { const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
     if (dates.length) {
       const minD = new Date(Math.min(...dates.map(d => d.getTime())));
       const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
@@ -3299,7 +3317,7 @@ function getDateRange(pageId) {
     label = qNames[qVal-1];
   } else if (view === 'yearly') {
     // Auto-detect FY range from actual data
-    const dates = allSRR.map(r => { const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
+    const dates = allSRR.map(r => { const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
     if (dates.length) {
       const minD = new Date(Math.min(...dates.map(d => d.getTime())));
       const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
@@ -3381,7 +3399,7 @@ function filterByDate(data, pageId) {
       const raw = r.etdEta || r.etd || r.eta;
       d = raw ? parseDdMmmYyyy(raw) : null;
     } else {
-      const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate);
+      const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate);
       d = raw ? new Date(raw) : null;
     }
     return d && d >= from && d <= to;
@@ -3454,7 +3472,7 @@ function getColKey(row, view) {
     raw = row.etdEta || row.etd || row.eta;
     d = raw ? parseDdMmmYyyy(raw) : null;
   } else {
-    raw = row.direction === 'Import' ? (row.destinationEta || row.originEtd) : (row.originEtd || row.etdDate);
+    raw = getRecordDirection(row) === 'Import' ? (row.destinationEta || row.originEtd) : (row.originEtd || row.etdDate);
     d = raw ? new Date(raw) : null;
   }
   if (!d) return null;
@@ -4893,7 +4911,7 @@ async function refreshData(pageId) {
     rawJPA    = [];
     allUsers  = data.users      || [];
     opsMapping = [];
-    allSRR   = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase());
+    allSRR   = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase());
     allJPA   = [];
     // Load WIP data
     try {
@@ -5799,7 +5817,7 @@ async function loadData() {
           if (s2 === 'HIT') {
             // Full cache ready — update data, re-render only the currently visible page
             rawSRR = d2.records || []; rawJPA = [];
-            allSRR = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r)); allJPA = [...rawJPA];
+            allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r)); allJPA = [...rawJPA];
             applyRLS();
             try { renderPage(getActivePage()); } catch(e) {}
             updateMainMetricsBadges();
@@ -5817,7 +5835,7 @@ async function loadData() {
               if (!r3.ok) return;
               const d3 = await r3.json();
               rawSRR = d3.records || []; rawJPA = [];
-              allSRR = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r)); allJPA = [...rawJPA];
+              allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r)); allJPA = [...rawJPA];
               applyRLS();
               try { renderPage(getActivePage()); } catch(e) {}
               updateMainMetricsBadges();
@@ -6173,7 +6191,7 @@ function applyRLS() {
   document.getElementById('sys-feedback').style.display = isAdmin ? 'flex' : 'none';
 
   if (isAdmin || isHR || isOpsHead) {
-    allSRR = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
     allJPA = [...rawJPA];
     return;
   }
@@ -6183,14 +6201,14 @@ function applyRLS() {
   const visibleJobOwners = getVisibleJobOwners(email);
 
   if (visibleJobOwners === 'ALL') {
-    allSRR = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
     allJPA = [...rawJPA];
   } else if (visibleJobOwners.size > 0) {
-    allSRR = rawSRR.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()) && (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    allSRR = rawSRR.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()) && getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
     allJPA = rawJPA.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()));
   } else {
     const joName = (currentUserDoc && currentUserDoc.jobOwnerName || currentUser.name || '').toLowerCase().trim();
-    allSRR = rawSRR.filter(r => (r.jobOwner || '').toLowerCase().trim() === joName && (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    allSRR = rawSRR.filter(r => (r.jobOwner || '').toLowerCase().trim() === joName && getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
     allJPA = rawJPA.filter(r => (r.jobOwner || '').toLowerCase().trim() === joName);
   }
 }

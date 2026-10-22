@@ -21,14 +21,15 @@ async function buildCache(db) {
   const expDocs   = await db.collection('th_ops_export').find({}).toArray();
   const impDocs   = await db.collection('th_ops_import').find({}).toArray();
   const userDocs  = await db.collection('users').find({}).toArray();
-  // Cross Trade kept as its own array rather than merged into allDocs -
-  // there's no dashboard page or direction filter wired up for it yet, so
-  // merging it in now would silently leak it into existing Export/Import
-  // filtering logic
+  // Cross Trade now merged into allDocs - each record already carries its
+  // own lob (FES/FIS/FEA/FIA/FER/FIR) and direction fields, matching the
+  // dashboard's existing matchesCurrentLob()/direction filtering exactly,
+  // so these show up in the right Sea/Air/Road Export/Import pages with no
+  // separate frontend wiring needed
   const crossTradeDocs = await db.collection('id_ops_crosstrade').find({}).toArray();
-  const allDocs  = [...expDocs, ...impDocs];
-  console.log(`[TH-OPS] Total docs: ${allDocs.length}, users: ${userDocs.length}, crossTrade: ${crossTradeDocs.length}`);
-  cache = { data: allDocs, users: userDocs, crossTrade: crossTradeDocs, builtAt: new Date().toISOString() };
+  const allDocs  = [...expDocs, ...impDocs, ...crossTradeDocs];
+  console.log(`[TH-OPS] Total docs: ${allDocs.length} (exp: ${expDocs.length}, imp: ${impDocs.length}, crossTrade: ${crossTradeDocs.length}), users: ${userDocs.length}`);
+  cache = { data: allDocs, users: userDocs, builtAt: new Date().toISOString() };
   return cache;
 }
 
@@ -77,7 +78,7 @@ export default async function handler(req, res) {
       }
       res.setHeader('X-Cache', 'HIT');
       res.setHeader('X-Cache-Age', Math.floor((new Date() - new Date(cache.builtAt)) / 1000));
-      return res.status(200).json({ records: cache.data, users: cache.users || [], crossTrade: cache.crossTrade || [], builtAt: cache.builtAt });
+      return res.status(200).json({ records: cache.data, users: cache.users || [], builtAt: cache.builtAt });
     } catch (e) {
       console.error(e);
       return res.status(500).json({ error: e.message });

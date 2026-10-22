@@ -3268,7 +3268,7 @@ function getDateRange(pageId) {
       label = MONTHS[fromState.selected.month] + ' ' + fromState.selected.year + ' → ' + MONTHS[toState.selected.month] + ' ' + toState.selected.year;
     } else {
       // Auto-detect from actual data (ignore invalid pre-2000 dates)
-      const dates = allSRR.map(r => { const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
+      const dates = allSRR.map(r => getRecordDate(r)).filter(d => d && d.getFullYear() > 2000);
       if (dates.length) {
         const minD = new Date(Math.min(...dates.map(d => d.getTime())));
         const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
@@ -3303,7 +3303,7 @@ function getDateRange(pageId) {
   } else if (view === 'quarterly') {
     const qVal = Number(document.getElementById('quarter-' + pageId).value || 1);
     // Span all data so all FY columns are shown
-    const dates = allSRR.map(r => { const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
+    const dates = allSRR.map(r => getRecordDate(r)).filter(d => d && d.getFullYear() > 2000);
     if (dates.length) {
       const minD = new Date(Math.min(...dates.map(d => d.getTime())));
       const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
@@ -3317,7 +3317,7 @@ function getDateRange(pageId) {
     label = qNames[qVal-1];
   } else if (view === 'yearly') {
     // Auto-detect FY range from actual data
-    const dates = allSRR.map(r => { const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
+    const dates = allSRR.map(r => getRecordDate(r)).filter(d => d && d.getFullYear() > 2000);
     if (dates.length) {
       const minD = new Date(Math.min(...dates.map(d => d.getTime())));
       const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
@@ -3390,18 +3390,25 @@ function initFilters(pageId) {
 function showScorecards(view) { return view !== 'yearly' && view !== 'quarterly'; }
 function showGrandTotal(view)  { return view !== 'yearly' && view !== 'quarterly'; }
 
+// Resolves a record's date for filtering/bucketing purposes. Falls back to
+// Job Date when ETD/ETA is missing - confirmed this is a genuine source-
+// sheet gap (not a sync bug, the pipeline correctly preserves it), so a job
+// with no ETD yet was previously invisible on every date-filtered page
+// instead of showing up under its booking date.
+function getRecordDate(r) {
+  if (r.chargeType !== undefined) {
+    // WIP record — dates are dd-MMM-yyyy strings, no Job Date fallback field exists for these
+    const raw = r.etdEta || r.etd || r.eta;
+    return raw ? parseDdMmmYyyy(raw) : null;
+  }
+  const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.originEtd || r.jobDate) : (r.originEtd || r.etdDate || r.jobDate);
+  return raw ? new Date(raw) : null;
+}
+
 function filterByDate(data, pageId) {
   const { from, to } = getDateRange(pageId);
   return data.filter(r => {
-    let d;
-    if (r.chargeType !== undefined) {
-      // WIP record — dates are dd-MMM-yyyy strings
-      const raw = r.etdEta || r.etd || r.eta;
-      d = raw ? parseDdMmmYyyy(raw) : null;
-    } else {
-      const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate);
-      d = raw ? new Date(raw) : null;
-    }
+    const d = getRecordDate(r);
     return d && d >= from && d <= to;
   });
 }
@@ -3466,15 +3473,7 @@ function parseDdMmmYyyy(s) {
 }
 
 function getColKey(row, view) {
-  // WIP records have chargeType field and use dd-MMM-yyyy date strings
-  let raw, d;
-  if (row.chargeType !== undefined) {
-    raw = row.etdEta || row.etd || row.eta;
-    d = raw ? parseDdMmmYyyy(raw) : null;
-  } else {
-    raw = getRecordDirection(row) === 'Import' ? (row.destinationEta || row.originEtd) : (row.originEtd || row.etdDate);
-    d = raw ? new Date(raw) : null;
-  }
+  const d = getRecordDate(row);
   if (!d) return null;
   if (view === 'weekly') {
     // Normalize to local midnight first — if the raw date carries a time-of-day

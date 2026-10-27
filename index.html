@@ -752,10 +752,10 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
 .ms-search::placeholder{color:var(--text3)}
 .ms-search:focus{border-color:var(--accent-border)}
 .ms-list{max-height:200px;overflow-y:auto;padding:2px 0}
-.ms-item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:12px;color:#B5D4F4;transition:background .1s}
-.ms-item:hover{background:rgba(255,255,255,.06)}
+.ms-item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:12px;color:var(--text1);transition:background .1s}
+.ms-item:hover{background:#f1f5f9}
 .ms-item input[type=checkbox]{accent-color:#3B82F6;width:13px;height:13px;flex-shrink:0;cursor:pointer}
-.ms-item.all-item{font-weight:600;color:#E6F1FB;border-bottom:0.5px solid rgba(133,183,235,.2);margin-bottom:2px;padding-bottom:8px}
+.ms-item.all-item{font-weight:600;color:var(--text1);border-bottom:0.5px solid var(--border);margin-bottom:2px;padding-bottom:8px}
 .ms-item.hidden-item{display:none}
 .ms-empty{padding:10px 12px;font-size:12px;color:var(--text3);text-align:center}
 
@@ -3731,7 +3731,7 @@ function renderTotalJobs() {
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
   const filtered = applyAdditionalFilters(applyDropdownFilters(filterByDate(allSRR, pageId), pageId), pageId);
 
-  populateFilters(pageId, filtered);
+  populateFilters(pageId, filterByDate(allSRR, pageId));
 
   const totalCount = filtered.length;
   const sc = document.getElementById('sc-total-jobs');
@@ -3830,7 +3830,7 @@ function renderOpenJobs() {
   const flaggedCount = flaggedDD.length;
   const pct = totalJobs > 0 ? ((flaggedCount / totalJobs) * 100).toFixed(1) : '0.0';
 
-  populateFilters(pageId, filteredDD);
+  populateFilters(pageId, filterByDate(allSRR, pageId));
 
   // Scorecards — clickable
   const kT = document.getElementById('kv-oj-total');
@@ -7329,7 +7329,7 @@ function _renderMblHbl(pageId, title, mblVal, hblVal) {
     (r.mblType || '').trim() === mblVal &&
     (r.hblType || '').trim() === hblVal
   );
-  populateFilters(pageId, filtered);
+  populateFilters(pageId, filterByDate(allSRR, pageId));
 
   const totalJobs    = filtered.length;
   const matchedCount = matchedDD.length;
@@ -7429,7 +7429,7 @@ function renderSummary() {
 
   const { cols, label, view } = getColumns(pageId);
   const filtered  = applyDropdownFilters(filterByDate(allSRR, pageId), pageId);
-  populateFilters(pageId, filtered);
+  populateFilters(pageId, filterByDate(allSRR, pageId));
 
   if (!cols.length) { container.innerHTML = '<div style="padding:40px;color:#94a3b8;text-align:center">No data for the selected period.</div>'; return; }
 

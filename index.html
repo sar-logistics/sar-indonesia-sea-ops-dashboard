@@ -3374,7 +3374,7 @@ function getRecordDate(r) {
     const raw = r.etdEta || r.etd || r.eta;
     return raw ? parseDdMmmYyyy(raw) : null;
   }
-  const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.originEtd || r.jobOpenedDate) : (r.originEtd || r.etdDate || r.jobOpenedDate);
+  const raw = getRecordDirection(r) === 'Import' ? (r.destinationEta || r.jobOpenedDate) : (r.originEtd || r.jobOpenedDate);
   return raw ? new Date(raw) : null;
 }
 

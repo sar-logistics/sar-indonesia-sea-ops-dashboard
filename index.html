@@ -2163,6 +2163,31 @@ function flipCostSigns(records) {
   return records;
 }
 
+// WIP (unbilled revenue) and ACR (accrued cost) lines never carry an invoice
+// number in the source report - nothing has been invoiced/posted for them yet.
+// So the Revenue Not Billed / Cost Not Posted drill-downs can show something
+// useful, fill those lines from the same job's billed/posted lines: REV invoices
+// for WIP, CST invoices for ACR - same charge code first, otherwise every such
+// invoice on the job. Values are kept exactly as entered. Display only.
+function fillRelatedInvoices(records) {
+  const SIDE = { WIP: 'REV', ACR: 'CST' };
+  const byCharge = {}, byJob = {};
+  const add = (map, key, inv) => { (map[key] = map[key] || []).includes(inv) || map[key].push(inv); };
+  records.forEach(r => {
+    const inv = r.invoiceNumber == null ? '' : String(r.invoiceNumber);
+    if (!inv.trim() || (r.chargeType !== 'REV' && r.chargeType !== 'CST')) return;
+    add(byCharge, r.chargeType + '|' + r.shipmentId + '|' + r.chargeCode, inv);
+    add(byJob, r.chargeType + '|' + r.shipmentId, inv);
+  });
+  records.forEach(r => {
+    const side = SIDE[r.chargeType];
+    if (!side || (r.invoiceNumber != null && String(r.invoiceNumber).trim())) return;
+    const list = byCharge[side + '|' + r.shipmentId + '|' + r.chargeCode] || byJob[side + '|' + r.shipmentId];
+    if (list) r.invoiceNumber = list.join(', ');
+  });
+  return records;
+}
+
 
 // ── LOB Navigation — 3 State System ──────────────────────────────────────
 // State 1: LOB full screen
@@ -4897,7 +4922,7 @@ async function refreshData(pageId) {
     try {
       const wipResp = await fetch(WIP_API + '?t=' + Date.now(), { method:'GET' });
       const wipData = await wipResp.json();
-      rawWIP = flipCostSigns(wipData.records || []);
+      rawWIP = fillRelatedInvoices(flipCostSigns(wipData.records || []));
     } catch(e) { console.warn('WIP load error:', e); rawWIP = []; }
     applyRLS();
     initFilters(pageId);
@@ -5837,7 +5862,7 @@ async function loadData() {
     try {
       const wipResp = await fetch(WIP_API + '?t=' + Date.now(), { method:'GET' });
       const wipData = await wipResp.json();
-      rawWIP = flipCostSigns(wipData.records || []);
+      rawWIP = fillRelatedInvoices(flipCostSigns(wipData.records || []));
       console.log('[loadData] WIP records:', rawWIP.length);
     } catch(e) { console.warn('WIP load error:', e); rawWIP = []; }
     applyRLS();

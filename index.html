@@ -4868,11 +4868,19 @@ function populateFilters(pageId, data) {
   const zones = hasOthers ? [...zonesSet, 'Others'] : zonesSet;
 
   const branches = [...new Set(data.map(r => r.jobBranch || r.branch).filter(Boolean))].sort();
-  const owners   = [...new Set(data.map(r => r.jobOwner).filter(Boolean))].sort();
+  const owners   = [...new Set(data.map(recOwner).filter(Boolean))].sort();
 
   buildMsDropdown('zone-'   + pageId, zones);
   buildMsDropdown('branch-' + pageId, branches);
   buildMsDropdown('owner-'  + pageId, owners);
+}
+
+// Job records carry the job owner in `operator` (the CargoWise export has no
+// jobOwner column); fall back to jobOwner for any source that does have one.
+// Same precedence the report grids already use, so filters and access rules
+// match the names shown in the tables.
+function recOwner(r) {
+  return r.operator || r.jobOwner || '';
 }
 
 function applyDropdownFilters(data, pageId) {
@@ -4893,7 +4901,7 @@ function applyDropdownFilters(data, pageId) {
     const rZone = r.zone || 'Others';
     if (!zoneAll   && !zoneState.has(rZone))             return false;
     if (!branchAll && !branchState.has(r.jobBranch || r.branch || '')) return false;
-    if (!ownerAll  && !ownerState.has(r.jobOwner || '')) return false;
+    if (!ownerAll  && !ownerState.has(recOwner(r))) return false;
     return true;
   });
 }
@@ -6203,12 +6211,12 @@ function applyRLS() {
     allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
     allJPA = [...rawJPA];
   } else if (visibleJobOwners.size > 0) {
-    allSRR = rawSRR.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()) && getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
-    allJPA = rawJPA.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()));
+    allSRR = rawSRR.filter(r => visibleJobOwners.has(recOwner(r).toLowerCase().trim()) && getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    allJPA = rawJPA.filter(r => visibleJobOwners.has(recOwner(r).toLowerCase().trim()));
   } else {
     const joName = (currentUserDoc && currentUserDoc.jobOwnerName || currentUser.name || '').toLowerCase().trim();
-    allSRR = rawSRR.filter(r => (r.jobOwner || '').toLowerCase().trim() === joName && getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
-    allJPA = rawJPA.filter(r => (r.jobOwner || '').toLowerCase().trim() === joName);
+    allSRR = rawSRR.filter(r => recOwner(r).toLowerCase().trim() === joName && getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    allJPA = rawJPA.filter(r => recOwner(r).toLowerCase().trim() === joName);
   }
 }
 
@@ -6939,7 +6947,7 @@ function _renderPerf(pageId, title, isOnTime, excludeFn, notDueYetFn) {
   // Build branch → owner map
   const brMap = {};
   data.forEach(r => {
-    const br = r.branch || '(No Branch)', ow = r.jobOwner || '(Unknown)';
+    const br = r.jobBranch || r.branch || '(No Branch)', ow = recOwner(r) || '(Unknown)';
     if (!brMap[br]) brMap[br] = {};
     if (!brMap[br][ow]) brMap[br][ow] = { total: 0, onTime: 0, breach: 0, recs: [] };
     brMap[br][ow].total++;

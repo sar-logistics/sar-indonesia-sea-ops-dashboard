@@ -3795,7 +3795,7 @@ function renderOpenJobs() {
 
   const flaggedDD = filteredDD.filter(r => {
     if (['CMP','CLS'].includes((r.jobStatus||'').toUpperCase())) return false;
-    const etd = r.etdDate ? new Date(r.etdDate) : null;
+    const etd = thresholdDate(r);
     return etd && etd < ojCutoff;
   });
 
@@ -4376,7 +4376,7 @@ function renderUnbilledRev() {
   const flaggedDD = filteredDD.filter(r => {
     if (!wipByShipment[r.shipmentId] || wipByShipment[r.shipmentId].length === 0) return false;
     if (urRequireOpsLock && !isJobOpsLocked(r)) return false;
-    const etd = r.etdDate ? new Date(r.etdDate) : null;
+    const etd = thresholdDate(r);
     return etd && etd < urCutoff;
   });
 
@@ -4412,7 +4412,7 @@ function renderUnpostedCost() {
   const flaggedDD = filteredDD.filter(r => {
     if (!accrualByShipment[r.shipmentId] || accrualByShipment[r.shipmentId].length === 0) return false;
     if (ucRequireOpsLock && !isJobOpsLocked(r)) return false;
-    const etd = r.etdDate ? new Date(r.etdDate) : null;
+    const etd = thresholdDate(r);
     return etd && etd < ucCutoff;
   });
 
@@ -4846,6 +4846,15 @@ function populateFilters(pageId, data) {
   buildMsDropdown('zone-'   + pageId, zones);
   buildMsDropdown('branch-' + pageId, branches);
   buildMsDropdown('owner-'  + pageId, owners);
+}
+
+// Grace-period date for Open Jobs / Revenue Not Billed / Cost Not Posted:
+// imports count from Destination ETA, everything else from Origin ETD.
+// SOB-based reports keep using ETD directly.
+function thresholdDate(r) {
+  const raw = getRecordDirection(r) === 'Import' ? r.destinationEta : r.originEtd;
+  const d = raw ? new Date(raw) : null;
+  return d && !isNaN(d) ? d : null;
 }
 
 // Job records carry the job owner in `operator` (the CargoWise export has no
@@ -6846,7 +6855,7 @@ const SUMMARY_REPORTS = [
       const ojCutoff = new Date();
       ojCutoff.setHours(0,0,0,0);
       ojCutoff.setDate(ojCutoff.getDate() - 7);
-      const etd = r.etdDate ? new Date(r.etdDate) : null;
+      const etd = thresholdDate(r);
       return etd && etd < ojCutoff;
     },
   },
@@ -6856,7 +6865,7 @@ const SUMMARY_REPORTS = [
     color:   '#dc2626',
     okColor: '#16a34a',
     flag:    r => {
-      const sob = r.etdDate ? new Date(r.etdDate) : null;
+      const sob = thresholdDate(r);
       if (!sob) return false;
       const days = (Date.now() - sob) / 86400000;
       return days > 3 && (!r.recognizedRevenue || r.recognizedRevenue === 0);
@@ -6868,7 +6877,7 @@ const SUMMARY_REPORTS = [
     color:   '#dc2626',
     okColor: '#16a34a',
     flag:    r => {
-      const sob = r.etdDate ? new Date(r.etdDate) : null;
+      const sob = thresholdDate(r);
       if (!sob) return false;
       const days = (Date.now() - sob) / 86400000;
       return days > 7 && (!r.recognizedCost || r.recognizedCost === 0);
@@ -7435,7 +7444,7 @@ function renderSummary() {
       if (!ck || totals[ck] === undefined) return;
       totals[ck]++;
       let isFlagged;
-      const etd = r.etdDate ? new Date(r.etdDate) : null;
+      const etd = thresholdDate(r);
       if (report.id === 'revenue-not-billed') {
         // Matches renderUnbilledRev()'s own grace period exactly: WIP > 0 AND
         // ETD older than 3 days (jobs shipped within the last 3 days are

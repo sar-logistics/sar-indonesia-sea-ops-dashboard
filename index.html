@@ -2338,7 +2338,7 @@ function setDirection(dir) {
     if (navScroll) navScroll.style.display = '';
 
     const sysSec = document.getElementById('sys-section');
-    if (sysSec) sysSec.style.display = '';
+    if (sysSec) sysSec.style.display = rlsIsAdmin() ? '' : 'none';
 
     document.querySelectorAll('.page').forEach(p => {
       if (p.id !== 'sk-lob-placeholder') p.style.display = '';
@@ -6157,40 +6157,42 @@ function extendSession() {
 }
 
 // ── RLS ──────────────────────────────────────────────────────
+// Four personas decide what each user sees:
+//   Admin    (Admin, Co-Admin)                        - all data + the System panel
+//   Ops Head (Ops Head, HR, Manager, Team Leader)     - all data, no System panel
+//   Docs     (Docs) and Ops (Job Owner)               - only jobs whose job owner/operator
+//                                                       is them, no System panel
+// Any other or missing role gets the Docs/Ops treatment (own data only).
+const RLS_ADMIN_ROLES    = ['admin', 'co-admin'];
+const RLS_ALL_DATA_ROLES = ['admin', 'co-admin', 'ops head', 'hr', 'manager', 'team leader'];
+function rlsRole() { return String(currentRole || '').toLowerCase().trim(); }
+function rlsIsAdmin() { return RLS_ADMIN_ROLES.includes(rlsRole()); }
+
 function applyRLS() {
-  const isAdmin      = ['Admin','Co-Admin','admin','co-admin'].includes(currentRole);
-  const isHR         = currentRole === 'HR';
-  const isOpsHead    = currentRole === 'Ops Head';
-  const isManager    = currentRole === 'Manager';
-  const isTeamLeader = currentRole === 'Team Leader';
+  const isAdmin = rlsIsAdmin();
 
-  // Nav visibility
-  document.getElementById('sys-admin').style.display  = isAdmin ? 'flex' : 'none';
-  document.getElementById('sys-teams').style.display  = (isAdmin || isHR || isOpsHead) ? 'flex' : 'none';
-  document.getElementById('sys-usage').style.display  = (isAdmin || isHR || isOpsHead || isManager || isTeamLeader) ? 'flex' : 'none';
-  document.getElementById('sys-feedback').style.display = isAdmin ? 'flex' : 'none';
+  // System panel (Usage Analytics, Teams, Admin Panel, Tickets) is Admin-only
+  const sysSec = document.getElementById('sys-section');
+  if (sysSec) sysSec.style.display = isAdmin ? '' : 'none';
+  ['sys-admin', 'sys-teams', 'sys-usage', 'sys-feedback'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAdmin ? 'flex' : 'none';
+  });
 
-  if (isAdmin || isHR || isOpsHead) {
-    allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+  const inView = r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r);
+  if (RLS_ALL_DATA_ROLES.includes(rlsRole())) {
+    allSRR = rawSRR.filter(inView);
     allJPA = [...rawJPA];
     return;
   }
 
-  // Build visible job owner names from reporting hierarchy
-  const email = (currentUser.email || '').toLowerCase().trim();
-  const visibleJobOwners = getVisibleJobOwners(email);
-
-  if (visibleJobOwners === 'ALL') {
-    allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
-    allJPA = [...rawJPA];
-  } else if (visibleJobOwners.size > 0) {
-    allSRR = rawSRR.filter(r => visibleJobOwners.has(recOwner(r).toLowerCase().trim()) && getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
-    allJPA = rawJPA.filter(r => visibleJobOwners.has(recOwner(r).toLowerCase().trim()));
-  } else {
-    const joName = (currentUserDoc && currentUserDoc.jobOwnerName || currentUser.name || '').toLowerCase().trim();
-    allSRR = rawSRR.filter(r => recOwner(r).toLowerCase().trim() === joName && getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
-    allJPA = rawJPA.filter(r => recOwner(r).toLowerCase().trim() === joName);
-  }
+  // Own data: the job's owner/operator must match the user's name as set in the
+  // Admin Panel (or their Google profile name, when it is spelled the same way)
+  const myNames = new Set([currentUserDoc && currentUserDoc.jobOwnerName, currentUserDoc && currentUserDoc.name, currentUser && currentUser.name]
+    .filter(Boolean).map(n => String(n).toLowerCase().trim()));
+  const isMine = r => myNames.has(recOwner(r).toLowerCase().trim());
+  allSRR = rawSRR.filter(r => isMine(r) && inView(r));
+  allJPA = rawJPA.filter(isMine);
 }
 
 function getVisibleJobOwners(email) {

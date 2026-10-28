@@ -6163,12 +6163,13 @@ function extendSession() {
 // ── RLS ──────────────────────────────────────────────────────
 // Four personas decide what each user sees:
 //   Admin    (Admin, Co-Admin)                        - all data + the System panel
-//   Ops Head (Ops Head, HR, Manager, Team Leader)     - all data, no System panel
+//   Ops Head (Regional Manager, Ops Head, HR,
+//             Manager, Team Leader)                  - all data, no System panel
 //   Docs     (Docs) and Ops (Job Owner)               - only jobs whose job owner/operator
 //                                                       is them, no System panel
 // Any other or missing role gets the Docs/Ops treatment (own data only).
 const RLS_ADMIN_ROLES    = ['admin', 'co-admin'];
-const RLS_ALL_DATA_ROLES = ['admin', 'co-admin', 'ops head', 'hr', 'manager', 'team leader'];
+const RLS_ALL_DATA_ROLES = ['admin', 'co-admin', 'regional manager', 'ops head', 'hr', 'manager', 'team leader'];
 function rlsRole() { return String(currentRole || '').toLowerCase().trim(); }
 function rlsIsAdmin() { return RLS_ADMIN_ROLES.includes(rlsRole()); }
 
@@ -6476,11 +6477,12 @@ function exportUsageToExcel() {
 }
 
 // ── ADMIN PANEL ──────────────────────────────────────────────
-const ROLES = ['Admin','Co-Admin','HR','Ops Head','Manager','Team Leader','Job Owner','Docs','CS'];
+const ROLES = ['Admin','Co-Admin','HR','Regional Manager','Ops Head','Manager','Team Leader','Job Owner','Docs','CS'];
 const ROLE_COLORS = {
   'Admin':        { bg:'#f3f0ff', color:'#7c3aed', border:'#c4b5fd' },
   'Co-Admin':     { bg:'#f3f0ff', color:'#7c3aed', border:'#c4b5fd' },
   'HR':           { bg:'#fdf2ff', color:'#9333ea', border:'#e9d5ff' },
+  'Regional Manager': { bg:'#fff1e6', color:'#c2410c', border:'#fdba74' },
   'Ops Head':     { bg:'#ffe4e6', color:'#e11d48', border:'#fda4af' },
   'Manager':      { bg:'#e0f2fe', color:'#0369a1', border:'#7dd3fc' },
   'Team Leader':  { bg:'#d1fae5', color:'#065f46', border:'#6ee7b7' },
@@ -6489,6 +6491,7 @@ const ROLE_COLORS = {
 
 const ROLE_GROUPS = [
   { label: 'ADMINISTRATION',     roles: ['Admin','Co-Admin','HR','admin','co-admin','hr'] },
+  { label: 'REGIONAL MANAGER',   roles: ['Regional Manager','regional manager'] },
   { label: 'OPS HEAD',           roles: ['Ops Head','ops head'] },
   { label: 'MANAGER',            roles: ['Manager','manager'] },
   { label: 'TEAM LEADER',        roles: ['Team Leader','team leader'] },
@@ -7981,7 +7984,7 @@ document.addEventListener('mousemove', e => {
 const CSV_TEMPLATE_HEADERS = ['Name','Email','Role','Phone','Reporting Manager Email','Status'];
 const CSV_REQUIRED = ['Name','Email','Role'];
 const VALID_ROLES_IMPORT = [
-  'Admin','Co-Admin','HR','Ops Head','Manager','Team Leader','Job Owner'
+  'Admin','Co-Admin','HR','Regional Manager','Ops Head','Manager','Team Leader','Job Owner'
 ];
 
 let _importRows = []; // parsed + validated rows

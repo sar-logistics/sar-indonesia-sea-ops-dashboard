@@ -29,7 +29,13 @@ async function buildCache(db) {
   const crossTradeDocs = await db.collection('id_ops_crosstrade').find({}).toArray();
   const allDocs  = [...expDocs, ...impDocs, ...crossTradeDocs];
   console.log(`[TH-OPS] Total docs: ${allDocs.length} (exp: ${expDocs.length}, imp: ${impDocs.length}, crossTrade: ${crossTradeDocs.length}), users: ${userDocs.length}`);
-  cache = { data: allDocs, users: userDocs, builtAt: new Date().toISOString() };
+  // Records are re-inserted on every sheet sync, so the newest ObjectId's
+  // timestamp is when the data was last synced into the database
+  const newest = allDocs.reduce((max, d) => {
+    const ts = d._id && typeof d._id.getTimestamp === 'function' ? d._id.getTimestamp().getTime() : 0;
+    return ts > max ? ts : max;
+  }, 0);
+  cache = { data: allDocs, users: userDocs, builtAt: new Date().toISOString(), lastSyncAt: newest ? new Date(newest).toISOString() : null };
   return cache;
 }
 
@@ -78,7 +84,7 @@ export default async function handler(req, res) {
       }
       res.setHeader('X-Cache', 'HIT');
       res.setHeader('X-Cache-Age', Math.floor((new Date() - new Date(cache.builtAt)) / 1000));
-      return res.status(200).json({ records: cache.data, users: cache.users || [], builtAt: cache.builtAt });
+      return res.status(200).json({ records: cache.data, users: cache.users || [], builtAt: cache.builtAt, lastSyncAt: cache.lastSyncAt || null });
     } catch (e) {
       console.error(e);
       return res.status(500).json({ error: e.message });

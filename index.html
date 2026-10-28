@@ -1160,12 +1160,12 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
         </div>
         <div class="tb-ud-divider"></div>
         <div class="tb-ud-item" style="flex-direction:column;align-items:flex-start;gap:2px">
-          <div class="tb-live-inner"><span class="tb-live-dot"></span>Live Data Connected</div>
+          <div class="tb-live-inner"><span class="tb-live-dot"></span>Data last synced</div>
           <div id="tb-last-updated" style="font-size:10px;color:var(--text3);padding-left:15px">—</div>
         </div>
-        <div class="tb-ud-divider"></div>
-        <!-- Currency Toggle -->
-        <div class="tb-ud-item" style="flex-direction:column;align-items:flex-start;gap:8px;padding:12px 16px">
+        <div class="tb-ud-divider" id="tb-currency-divider"></div>
+        <!-- Currency Toggle (Admin only - see applyRLS) -->
+        <div class="tb-ud-item" id="tb-currency-block" style="flex-direction:column;align-items:flex-start;gap:8px;padding:12px 16px">
           <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text3);text-transform:uppercase">Currency</div>
           <div style="display:flex;background:var(--bg);border-radius:8px;padding:2px;gap:2px;width:100%">
             <button id="cur-idr" onclick="setCurrency('IDR');toggleUserMenu()" style="flex:1;font-size:11px;font-weight:700;padding:5px 0;border-radius:6px;border:none;cursor:pointer;background:transparent;color:var(--text3);transition:all .15s">Rp IDR</button>
@@ -2107,20 +2107,22 @@ document.addEventListener('click', e => {
   icon.classList.add('spinning');
 });
 
-// ── LAST UPDATED TIMESTAMP ───────────────────────────────────
+// ── LAST SYNC TIMESTAMP ──────────────────────────────────────
+// When the job data was last synced from the source sheet into the database
+// (lastSyncAt comes from /api/mongo-batch, taken from the newest record)
 let lastDataUpdate = null;
+let lastSyncAt = null;
 function markDataUpdated() {
   lastDataUpdate = Date.now();
   renderLastUpdated();
 }
 function renderLastUpdated() {
-  const mins = lastDataUpdate ? Math.floor((Date.now() - lastDataUpdate) / 60000) : null;
   let text = '—';
-  if (mins !== null) {
-    if (mins < 1) text = 'Updated just now';
-    else if (mins === 1) text = 'Updated 1 min ago';
-    else if (mins < 60) text = 'Updated ' + mins + ' min ago';
-    else text = 'Updated ' + Math.floor(mins / 60) + 'h ago';
+  if (lastSyncAt) {
+    const d = new Date(lastSyncAt);
+    const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+    const ago = mins < 1 ? 'just now' : mins < 60 ? mins + ' min ago' : mins < 1440 ? Math.floor(mins / 60) + 'h ago' : Math.floor(mins / 1440) + 'd ago';
+    text = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' · ' + ago;
   }
   const el = document.getElementById('tb-last-updated');
   if (el) el.textContent = text;
@@ -3048,7 +3050,9 @@ function setPage(pageId, title, group, el) {
   if (pageId === 'feedback') loadFeedback();
   // Render report pages lazily — only when the user actually navigates to them
   const reportPages = ['summary','open-jobs','total-jobs','unbilled-rev','unposted-cost','low-profit','revenue-not-billed','cost-not-posted','job-profit']; // trimmed to the 6 pages that actually exist and render (some ids are aliases of the same div - see pageIdMap above)
-  if (reportPages.includes(pageId) && allSRR.length) renderPage(pageId);
+  // rawSRR (not allSRR) - a Docs/Ops user with no jobs of their own should see
+  // "No data", not a page stuck on Loading
+  if (reportPages.includes(pageId) && rawSRR.length) renderPage(pageId);
   logUsage(pageId);
   setTimeout(convertAllSelects, 50);
 }
@@ -4895,7 +4899,7 @@ async function refreshData(pageId) {
   try {
     const resp = await fetch(BATCH_API + '?t=' + Date.now() + '&forceRefresh=1', { method:'GET', headers:{'Cache-Control':'no-cache, no-store'} });
     const data = await resp.json();
-    rawSRR    = data.records    || [];
+    rawSRR    = data.records    || []; if (data.lastSyncAt) { lastSyncAt = data.lastSyncAt; renderLastUpdated(); }
     updateRateLabel();
     rawJPA    = [];
     allUsers  = data.users      || [];
@@ -5796,7 +5800,7 @@ async function loadData() {
           const s2 = r2.headers.get('X-Cache');
           if (s2 === 'HIT') {
             // Full cache ready — update data, re-render only the currently visible page
-            rawSRR = d2.records || []; rawJPA = [];
+            rawSRR = d2.records || []; if (d2.lastSyncAt) { lastSyncAt = d2.lastSyncAt; renderLastUpdated(); } rawJPA = [];
             allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r)); allJPA = [...rawJPA];
             applyRLS();
             try { renderPage(getActivePage()); } catch(e) {}
@@ -5814,7 +5818,7 @@ async function loadData() {
               });
               if (!r3.ok) return;
               const d3 = await r3.json();
-              rawSRR = d3.records || []; rawJPA = [];
+              rawSRR = d3.records || []; if (d3.lastSyncAt) { lastSyncAt = d3.lastSyncAt; renderLastUpdated(); } rawJPA = [];
               allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r)); allJPA = [...rawJPA];
               applyRLS();
               try { renderPage(getActivePage()); } catch(e) {}
@@ -5826,7 +5830,7 @@ async function loadData() {
         } catch(e) { console.error('[loadData] Silent re-fetch error:', e); }
       }, 45000);
     }
-    rawSRR     = data.records    || [];
+    rawSRR     = data.records    || []; if (data.lastSyncAt) { lastSyncAt = data.lastSyncAt; renderLastUpdated(); }
     rawJPA     = [];
     allUsers   = data.users      || [];
     opsMapping = [];
@@ -6179,6 +6183,13 @@ function applyRLS() {
     if (el) el.style.display = isAdmin ? 'flex' : 'none';
   });
 
+  // Currency switch and exchange rate are Admin-only; everyone else sees USD
+  ['tb-currency-divider', 'tb-currency-block'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAdmin ? '' : 'none';
+  });
+  if (!isAdmin && currentCurrency !== 'USD') { if (typeof window.setCurrency === 'function') window.setCurrency('USD'); else currentCurrency = 'USD'; }
+
   const inView = r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r);
   if (RLS_ALL_DATA_ROLES.includes(rlsRole())) {
     allSRR = rawSRR.filter(inView);
@@ -6188,9 +6199,12 @@ function applyRLS() {
 
   // Own data: the job's owner/operator must match the user's name as set in the
   // Admin Panel (or their Google profile name, when it is spelled the same way)
+  // Bracketed nicknames are ignored, so "Thanathep Panday (Bubble)" on a job matches
+  // "Thanathep Panday" in the Admin Panel
+  const normName = n => String(n || '').replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').toLowerCase().trim();
   const myNames = new Set([currentUserDoc && currentUserDoc.jobOwnerName, currentUserDoc && currentUserDoc.name, currentUser && currentUser.name]
-    .filter(Boolean).map(n => String(n).toLowerCase().trim()));
-  const isMine = r => myNames.has(recOwner(r).toLowerCase().trim());
+    .map(normName).filter(Boolean));
+  const isMine = r => myNames.has(normName(recOwner(r)));
   allSRR = rawSRR.filter(r => isMine(r) && inView(r));
   allJPA = rawJPA.filter(isMine);
 }

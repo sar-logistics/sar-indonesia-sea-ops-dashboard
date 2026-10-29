@@ -2111,25 +2111,46 @@ document.addEventListener('click', e => {
 // When the job data was last synced from the source sheet into the database
 // (lastSyncAt comes from /api/mongo-batch, taken from the newest record)
 let lastDataUpdate = null;
-let lastSyncAt = null;
+let lastSyncAt = null;   // job records (Export/Import/Cross Trade)
+let wipSyncAt  = null;   // WIP & Accrual lines - pushed separately, so it can lag behind
 function markDataUpdated() {
   lastDataUpdate = Date.now();
   renderLastUpdated();
 }
+function fmtSyncTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+  const ago = mins < 1 ? 'just now' : mins < 60 ? mins + ' min ago' : mins < 1440 ? Math.floor(mins / 60) + 'h ago' : Math.floor(mins / 1440) + 'd ago';
+  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' · ' + ago;
+}
 function renderLastUpdated() {
-  let text = '—';
-  if (lastSyncAt) {
-    const d = new Date(lastSyncAt);
-    const mins = Math.floor((Date.now() - d.getTime()) / 60000);
-    const ago = mins < 1 ? 'just now' : mins < 60 ? mins + ' min ago' : mins < 1440 ? Math.floor(mins / 60) + 'h ago' : Math.floor(mins / 1440) + 'd ago';
-    text = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' · ' + ago;
-  }
+  // WIP more than 30 min older than the jobs = its push failed or is still running
+  const wipLagging = lastSyncAt && wipSyncAt && (new Date(lastSyncAt) - new Date(wipSyncAt)) > 30 * 60000;
+  const html = 'Jobs: ' + fmtSyncTime(lastSyncAt) + '<br>' +
+    '<span style="' + (wipLagging ? 'color:#b45309;font-weight:600' : '') + '">WIP: ' + fmtSyncTime(wipSyncAt) +
+    (wipLagging ? ' ⚠ older than jobs' : '') + '</span>';
   const el = document.getElementById('tb-last-updated');
-  if (el) el.textContent = text;
+  if (el) el.innerHTML = html;
   const el2 = document.getElementById('sf-last-updated');
-  if (el2) el2.textContent = text;
+  if (el2) el2.innerHTML = html;
 }
 setInterval(renderLastUpdated, 30000);
+
+// WIP is a big payload and its API can fail right after a sync - retry once
+// rather than silently showing empty Revenue Not Billed / Cost Not Posted
+async function fetchWipData() {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const resp = await fetch(WIP_API + '?t=' + Date.now(), { method: 'GET' });
+      const data = await resp.json();
+      if (resp.ok && Array.isArray(data.records)) return data;
+      console.warn('WIP load attempt ' + attempt + ' failed:', data && data.error);
+    } catch (e) { console.warn('WIP load attempt ' + attempt + ' failed:', e); }
+    if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+  }
+  return { records: [] };
+}
 
 // ── KEEPALIVE — prevents Vercel cold starts ──────────────────
 setInterval(async () => {
@@ -4908,9 +4929,9 @@ async function refreshData(pageId) {
     allJPA   = [];
     // Load WIP data
     try {
-      const wipResp = await fetch(WIP_API + '?t=' + Date.now(), { method:'GET' });
-      const wipData = await wipResp.json();
+      const wipData = await fetchWipData();
       rawWIP = flipCostSigns(wipData.records || []);
+      if (wipData.lastSyncAt) { wipSyncAt = wipData.lastSyncAt; renderLastUpdated(); }
     } catch(e) { console.warn('WIP load error:', e); rawWIP = []; }
     applyRLS();
     initFilters(pageId);
@@ -5839,9 +5860,9 @@ async function loadData() {
     allJPA = [...rawJPA];
     // Load WIP data
     try {
-      const wipResp = await fetch(WIP_API + '?t=' + Date.now(), { method:'GET' });
-      const wipData = await wipResp.json();
+      const wipData = await fetchWipData();
       rawWIP = flipCostSigns(wipData.records || []);
+      if (wipData.lastSyncAt) { wipSyncAt = wipData.lastSyncAt; renderLastUpdated(); }
       console.log('[loadData] WIP records:', rawWIP.length);
     } catch(e) { console.warn('WIP load error:', e); rawWIP = []; }
     applyRLS();

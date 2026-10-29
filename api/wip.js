@@ -51,15 +51,25 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const now = new Date();
-      if (!cache.data || !cache.builtAt || (now - new Date(cache.builtAt)) > TTL_MS) {
+      // Work on a local snapshot: a wipe/push resets `cache` while this request
+      // may still be awaiting Mongo, which used to make cache.data null here
+      let snap = cache;
+      if (!snap.data || !snap.builtAt || (now - new Date(snap.builtAt)) > TTL_MS) {
         const c  = await getClient();
         const db = c.db(DB);
-        console.log('[TH-WIP] Building cache...');
-        cache.data = await db.collection('th_ops_wip').find({}).toArray();
-        cache.builtAt = new Date().toISOString();
-        console.log(`[TH-WIP] Total docs: ${cache.data.length}`);
+        console.log('[WIP] Building cache...');
+        const docs = await db.collection('th_ops_wip').find({}).toArray();
+        // Lines are re-inserted on every sync, so the newest ObjectId's timestamp
+        // is when the WIP data was last synced into the database
+        const newest = docs.reduce((max, d) => {
+          const ts = d._id && typeof d._id.getTimestamp === 'function' ? d._id.getTimestamp().getTime() : 0;
+          return ts > max ? ts : max;
+        }, 0);
+        snap = { data: docs, builtAt: new Date().toISOString(), lastSyncAt: newest ? new Date(newest).toISOString() : null };
+        cache = snap;
+        console.log(`[WIP] Total docs: ${docs.length}`);
       }
-      return res.status(200).json({ records: cache.data, builtAt: cache.builtAt });
+      return res.status(200).json({ records: snap.data, builtAt: snap.builtAt, lastSyncAt: snap.lastSyncAt || null });
     } catch (e) {
       console.error(e);
       return res.status(500).json({ error: e.message });

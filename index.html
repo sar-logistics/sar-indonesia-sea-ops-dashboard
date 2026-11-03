@@ -6587,7 +6587,7 @@ function exportUsageToExcel() {
 }
 
 // ── ADMIN PANEL ──────────────────────────────────────────────
-const ROLES = ['Admin','Strategy','Management','HR','Finance','Zonal Manager','Ops Head','Ops Team Leader','Job Owner','Doc User','Docs','CS'];
+const ROLES = ['Admin','Strategy','Management','Regional Manager','HR','Finance','Zonal Manager','Ops Head','Ops Team Leader','Job Owner','Doc User','Docs','CS'];
 const ADMIN_ROLES = ['Admin','Co-Admin','admin','co-admin'];   // Co-Admin kept for older user records
 // All jobs (same list as RLS_ALL_DATA_ROLES, with the role names as stored)
 const SEE_ALL_DATA_ROLES = [...ADMIN_ROLES,'Strategy','Management','HR','Finance','Ops Head','Regional Manager','Manager','Team Leader'];
@@ -6596,6 +6596,7 @@ const ROLE_COLORS = {
   'Co-Admin':        { bg:'#f3f0ff', color:'#7c3aed', border:'#c4b5fd' },
   'Strategy':        { bg:'#eef2ff', color:'#4338ca', border:'#a5b4fc' },
   'Management':      { bg:'#f0f9ff', color:'#075985', border:'#7dd3fc' },
+  'Regional Manager': { bg:'#fff1e6', color:'#c2410c', border:'#fdba74' },
   'HR':              { bg:'#fdf2ff', color:'#9333ea', border:'#e9d5ff' },
   'Finance':         { bg:'#ecfdf5', color:'#047857', border:'#6ee7b7' },
   'Zonal Manager':   { bg:'#e0f2fe', color:'#0369a1', border:'#7dd3fc' },
@@ -6611,6 +6612,7 @@ const ROLE_GROUPS = [
   { label: 'ADMINISTRATION',     roles: ['Admin','Co-Admin','admin','co-admin'] },
   { label: 'STRATEGY',           roles: ['Strategy','strategy'] },
   { label: 'MANAGEMENT',         roles: ['Management','management'] },
+  { label: 'REGIONAL MANAGER',   roles: ['Regional Manager','regional manager'] },
   { label: 'HR',                 roles: ['HR','hr'] },
   { label: 'FINANCE',            roles: ['Finance','finance'] },
   { label: 'ZONAL MANAGER',      roles: ['Zonal Manager','zonal manager'] },
@@ -8113,7 +8115,7 @@ document.addEventListener('mousemove', e => {
 const CSV_TEMPLATE_HEADERS = ['Name','Email','Role','Phone','Reporting Manager Email','Status'];
 const CSV_REQUIRED = ['Name','Email','Role'];
 const VALID_ROLES_IMPORT = [
-  'Admin','Strategy','Management','HR','Finance','Zonal Manager','Ops Head','Ops Team Leader','Job Owner','Doc User','Docs','CS'
+  'Admin','Strategy','Management','Regional Manager','HR','Finance','Zonal Manager','Ops Head','Ops Team Leader','Job Owner','Doc User','Docs','CS'
 ];
 
 let _importRows = []; // parsed + validated rows

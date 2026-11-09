@@ -1542,10 +1542,10 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                 <div class="add-filter-label">Operation Lock Condition</div>
                 <label style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text2);cursor:pointer">
                   <span class="tgl-switch">
-                    <input type="checkbox" id="chk-ur-require-ops-lock" onchange="toggleUbRequireOpsLock(this)">
+                    <input type="checkbox" id="chk-ur-require-ops-lock" onchange="toggleUrRequireOpsLock(this)">
                     <span class="tgl-track"></span>
                   </span>
-                  Require Ops Lock = Yes
+                  Require Ops Lock = Yes <span style="color:var(--text3);font-size:11px">(Job Status CMP / CLS)</span>
                 </label>
               </div>
             </div>
@@ -1656,7 +1656,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                     <input type="checkbox" id="chk-uc-require-ops-lock" onchange="toggleUcRequireOpsLock(this)">
                     <span class="tgl-track"></span>
                   </span>
-                  Require Ops Lock = Yes
+                  Require Ops Lock = Yes <span style="color:var(--text3);font-size:11px">(Job Status CMP / CLS)</span>
                 </label>
               </div>
             </div>
@@ -4443,10 +4443,11 @@ function getColumnsFromRecords(records, pageId, view) {
 // required an Ops Lock, so OFF keeps today's numbers exactly as they were.
 let ubViewMode = 'count';    // 'count' or 'amount' - Revenue Not Billed grid: job counts vs summed WIP amounts
 let ucViewMode = 'count';    // 'count' or 'amount' - Cost Not Posted grid: job counts vs summed accrual amounts
-let urRequireOpsLock = false; // Revenue Not Billed: only jobs that have an Operation Lock date
-let ucRequireOpsLock = false; // Cost Not Posted:    only jobs that have an Operation Lock date
-// A job counts as Ops-Locked when it has an Operation Lock date (the job's `operationLock` field)
-function isJobOpsLocked(r) { return !!(r && r.operationLock && String(r.operationLock).trim() !== ''); }
+let urRequireOpsLock = false; // Revenue Not Billed: only Ops-Locked jobs (Job Status CMP / CLS)
+let ucRequireOpsLock = false; // Cost Not Posted:    only Ops-Locked jobs (Job Status CMP / CLS)
+// A job counts as Ops-Locked when its Job Status is CMP or CLS (completed / closed) — the
+// opposite of the Open Jobs rule. The Shipment Profile report has no Operation Lock date.
+function isJobOpsLocked(r) { return !!r && ['CMP','CLS'].includes(String(r.jobStatus || '').trim().toUpperCase()); }
 function toggleUbViewMode(chkEl) { ubViewMode = chkEl.checked ? 'amount' : 'count'; renderPage('unbilled-rev'); }
 function toggleUcViewMode(chkEl) { ucViewMode = chkEl.checked ? 'amount' : 'count'; renderPage('unposted-cost'); }
 function toggleUrRequireOpsLock(chkEl) { urRequireOpsLock = chkEl.checked; renderPage('unbilled-rev'); }

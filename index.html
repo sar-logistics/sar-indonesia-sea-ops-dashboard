@@ -4446,12 +4446,14 @@ let ucViewMode = 'count';    // 'count' or 'amount' - Cost Not Posted grid: job 
 let urRequireOpsLock = false; // Revenue Not Billed: only Ops-Locked jobs (Operation Lock = Yes)
 let ucRequireOpsLock = false; // Cost Not Posted:    only Ops-Locked jobs (Operation Lock = Yes)
 // Ops-Locked = the sheet's "Operation Lock" column says Yes (pushed as `operationLock`; the
-// sheet fills it from Job Status: CMP or CLS = Yes). A job with no value there (column missing
-// or not synced yet) falls back to its Job Status, so the toggle never empties the page.
+// sheet fills it from Job Status: CMP or CLS = Yes). Only a plain Yes / No counts: anything
+// else (missing, not synced yet, or an error such as #REF! when someone typed into the
+// column) falls back to the job's Job Status, so a broken column can't lock every job.
 function isJobOpsLocked(r) {
   if (!r) return false;
-  const ol = String(r.operationLock || '').trim();
-  if (ol) return !/^(no|n|false|0)$/i.test(ol);
+  const ol = String(r.operationLock || '').trim().toLowerCase();
+  if (ol === 'yes') return true;
+  if (ol === 'no') return false;
   return ['CMP','CLS'].includes(String(r.jobStatus || '').trim().toUpperCase());
 }
 function toggleUbViewMode(chkEl) { ubViewMode = chkEl.checked ? 'amount' : 'count'; renderPage('unbilled-rev'); }

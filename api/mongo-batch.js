@@ -27,8 +27,21 @@ async function buildCache(db) {
   // so these show up in the right Sea/Air/Road Export/Import pages with no
   // separate frontend wiring needed
   const crossTradeDocs = await db.collection('id_ops_crosstrade').find({}).toArray();
-  const allDocs  = [...expDocs, ...impDocs, ...crossTradeDocs];
-  console.log(`[TH-OPS] Total docs: ${allDocs.length} (exp: ${expDocs.length}, imp: ${impDocs.length}, crossTrade: ${crossTradeDocs.length}), users: ${userDocs.length}`);
+  // The Cross Trade sheet sometimes also carries plain Export/Import jobs that
+  // are already in the Export/Import sheets (e.g. S00133444), which made the
+  // dashboard count them twice. Keep one record per job + LOB + direction,
+  // preferring the Export/Import copy.
+  const jobKey = d => [d.shipmentId, d.lob, d.direction].map(v => String(v || '').trim().toUpperCase()).join('|');
+  const seen = new Set();
+  const allDocs = [];
+  let dropped = 0;
+  for (const d of [...expDocs, ...impDocs, ...crossTradeDocs]) {
+    const k = d.shipmentId ? jobKey(d) : null;
+    if (k && seen.has(k)) { dropped++; continue; }
+    if (k) seen.add(k);
+    allDocs.push(d);
+  }
+  console.log(`[TH-OPS] Total docs: ${allDocs.length} (exp: ${expDocs.length}, imp: ${impDocs.length}, crossTrade: ${crossTradeDocs.length}, duplicates dropped: ${dropped}), users: ${userDocs.length}`);
   // Records are re-inserted on every sheet sync, so the newest ObjectId's
   // timestamp is when the data was last synced into the database
   const newest = allDocs.reduce((max, d) => {

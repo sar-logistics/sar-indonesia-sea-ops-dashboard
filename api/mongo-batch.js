@@ -27,6 +27,24 @@ async function buildCache(db) {
   // so these show up in the right Sea/Air/Road Export/Import pages with no
   // separate frontend wiring needed
   const crossTradeDocs = await db.collection('id_ops_crosstrade').find({}).toArray();
+  // The Cross Trade sheet names some columns differently from the Export/Import
+  // sheets (e.g. "Job Operator" -> jobOperator instead of operator). Copy them
+  // to the standard names so drill-downs, owner grouping/filters and row-level
+  // access treat Cross Trade jobs like every other job.
+  const CROSS_TRADE_FIELD_MAP = {
+    jobOperator: 'operator',
+    jobSalesRep: 'salesRep',
+    jobOpened:   'jobOpenedDate',
+    etdFirstLoad:'etdDate',
+    inner:       'innerPkgs',
+    outer:       'outerPkgs',
+  };
+  for (const d of crossTradeDocs) {
+    for (const [from, to] of Object.entries(CROSS_TRADE_FIELD_MAP)) {
+      const empty = v => v === undefined || v === null || v === '';
+      if (empty(d[to]) && !empty(d[from])) d[to] = d[from];
+    }
+  }
   // The Cross Trade sheet sometimes also carries plain Export/Import jobs that
   // are already in the Export/Import sheets (e.g. S00133444), which made the
   // dashboard count them twice. Keep one record per job + LOB + direction,

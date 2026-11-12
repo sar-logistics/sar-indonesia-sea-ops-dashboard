@@ -66,7 +66,10 @@ async function buildCache(db) {
     allDocs.push(d);
   }
   for (const d of crossTradeDocs) {
-    const twin = ship(d) && expImpById.get(ship(d));
+    // A Cross Trade row that says plain "Export"/"Import" (e.g. S00133444) keeps
+    // the original handling: dropped only if job + LOB + direction all match.
+    const plain = /^(export|import)$/i.test(String(d.direction || '').trim());
+    const twin = !plain && ship(d) && expImpById.get(ship(d));
     if (twin) {
       if (hasLob(twin)) twin.direction = d.direction || 'Other/Cross Trade';
       dropped++;

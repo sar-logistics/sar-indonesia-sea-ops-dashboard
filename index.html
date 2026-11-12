@@ -5963,8 +5963,8 @@ async function loadData() {
     rawJPA     = [];
     allUsers   = data.users      || [];
     opsMapping = [];
-    // Filter by current direction
-    allSRR = rawSRR.filter(r => (r.direction || '').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    // Filter by current direction (from the record's LOB, like everywhere else)
+    allSRR = rawSRR.filter(r => getRecordDirection(r).toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
     allJPA = [...rawJPA];
     // Load WIP data
     try {

@@ -45,15 +45,33 @@ async function buildCache(db) {
       if (empty(d[to]) && !empty(d[from])) d[to] = d[from];
     }
   }
-  // The Cross Trade sheet sometimes also carries plain Export/Import jobs that
-  // are already in the Export/Import sheets (e.g. S00133444), which made the
-  // dashboard count them twice. Keep one record per job + LOB + direction,
-  // preferring the Export/Import copy.
+  // Jobs in the Cross Trade sheet are usually also in the Export or Import sheet
+  // (e.g. S00133444, S00123131), which made the dashboard count them twice and
+  // double their WIP. Keep one record per job: the Export/Import copy, labelled
+  // "Other/Cross Trade" so it still shows as a cross trade job; the Cross Trade
+  // copy is dropped whatever its Direction/LOB says. Exact repeats inside the
+  // sheets (same job + LOB + direction) are still dropped too.
   const jobKey = d => [d.shipmentId, d.lob, d.direction].map(v => String(v || '').trim().toUpperCase()).join('|');
+  const ship = d => String(d.shipmentId || '').trim().toUpperCase();
+  const hasLob = d => /^.[EI]/i.test(String(d.lob || ''));
   const seen = new Set();
+  const expImpById = new Map();
   const allDocs = [];
   let dropped = 0;
-  for (const d of [...expDocs, ...impDocs, ...crossTradeDocs]) {
+  for (const d of [...expDocs, ...impDocs]) {
+    const k = d.shipmentId ? jobKey(d) : null;
+    if (k && seen.has(k)) { dropped++; continue; }
+    if (k) seen.add(k);
+    if (ship(d) && !expImpById.has(ship(d))) expImpById.set(ship(d), d);
+    allDocs.push(d);
+  }
+  for (const d of crossTradeDocs) {
+    const twin = ship(d) && expImpById.get(ship(d));
+    if (twin) {
+      if (hasLob(twin)) twin.direction = d.direction || 'Other/Cross Trade';
+      dropped++;
+      continue;
+    }
     const k = d.shipmentId ? jobKey(d) : null;
     if (k && seen.has(k)) { dropped++; continue; }
     if (k) seen.add(k);

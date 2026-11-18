@@ -1538,16 +1538,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-dropdown" id="msd-owner-unbilled-rev"></div>
                 </div>
               </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">Operation Lock Condition</div>
-                <label style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text2);cursor:pointer">
-                  <span class="tgl-switch">
-                    <input type="checkbox" id="chk-ur-require-ops-lock" onchange="toggleUrRequireOpsLock(this)">
-                    <span class="tgl-track"></span>
-                  </span>
-                  Require Ops Lock = Yes <span style="color:var(--text3);font-size:11px">(Operation Lock column: Job Status CMP / CLS)</span>
-                </label>
-              </div>
             </div>
           </div>
           <button class="dv-btn" onclick="refreshData('unbilled-rev')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
@@ -1570,6 +1560,13 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
             <div class="sec-ct" id="sc-unbilled-rev">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
             <button class="ec-btn" data-state="collapsed" onclick="toggleExpandCollapse('unbilled-rev', this)" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
+            <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer;margin-left:4px" title="Only jobs whose Operation Lock = Yes (Job Status CMP / CLS)">
+              <span class="tgl-switch">
+                <input type="checkbox" id="chk-ur-require-ops-lock" onchange="toggleUrRequireOpsLock(this)">
+                <span class="tgl-track"></span>
+              </span>
+              Require Ops Lock
+            </label>
             <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
               <span class="tgl-switch">
                 <input type="checkbox" id="ub-viewmode-chk" onchange="toggleUbViewMode(this)">
@@ -1649,16 +1646,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-dropdown" id="msd-owner-unposted-cost"></div>
                 </div>
               </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">Operation Lock Condition</div>
-                <label style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text2);cursor:pointer">
-                  <span class="tgl-switch">
-                    <input type="checkbox" id="chk-uc-require-ops-lock" onchange="toggleUcRequireOpsLock(this)">
-                    <span class="tgl-track"></span>
-                  </span>
-                  Require Ops Lock = Yes <span style="color:var(--text3);font-size:11px">(Operation Lock column: Job Status CMP / CLS)</span>
-                </label>
-              </div>
             </div>
           </div>
           <button class="dv-btn" onclick="refreshData('unposted-cost')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
@@ -1681,6 +1668,13 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
             <div class="sec-ct" id="sc-unposted-cost">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
             <button class="ec-btn" data-state="collapsed" onclick="toggleExpandCollapse('unposted-cost', this)" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
+            <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer;margin-left:4px" title="Only jobs whose Operation Lock = Yes (Job Status CMP / CLS)">
+              <span class="tgl-switch">
+                <input type="checkbox" id="chk-uc-require-ops-lock" onchange="toggleUcRequireOpsLock(this)">
+                <span class="tgl-track"></span>
+              </span>
+              Require Ops Lock
+            </label>
             <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
               <span class="tgl-switch">
                 <input type="checkbox" id="uc-viewmode-chk" onchange="toggleUcViewMode(this)">
@@ -4824,22 +4818,20 @@ function toggleMsItem(id, value, isAll) {
   const allVals = [];
   if (dd) dd.querySelectorAll('.ms-item:not(.all-item)').forEach(el => { if (el.dataset.val) allVals.push(el.dataset.val); });
 
-  // Never end on "nothing selected" (it emptied the table with "No data for this period"):
-  // All always means everyone, and unticking the last selected value goes back to All.
   if (isAll) {
-    msState[id] = new Set();
+    msState[id] = (s instanceof Set && s.size === 0) ? null : new Set();
   } else {
     if (s === null) {
       msState[id] = new Set([value]);
     } else if (s instanceof Set && s.size === 0) {
       const newSet = new Set(allVals);
       newSet.delete(value);
-      msState[id] = newSet.size === 0 ? new Set() : newSet;
+      msState[id] = newSet.size === 0 ? null : newSet;
     } else {
       const newSet = new Set(s);
       if (newSet.has(value)) newSet.delete(value);
       else newSet.add(value);
-      msState[id] = (newSet.size === 0 || newSet.size >= allVals.length) ? new Set() : newSet;
+      msState[id] = newSet.size === 0 ? null : (newSet.size >= allVals.length ? new Set() : newSet);
     }
   }
 

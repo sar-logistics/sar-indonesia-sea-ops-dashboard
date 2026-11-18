@@ -5473,7 +5473,7 @@ async function refreshData(pageId) {
     applyRLS();
     // keep the dates/filters the user picked - only the data is reloaded
     renderPage(pageId);
-    showToast('Data refreshed', (rawSRR.length + rawImportJobs.length).toLocaleString() + ' jobs');
+    showToast('Data refreshed', rawSRR.length.toLocaleString() + ' jobs');
   } catch(e) { console.error('Refresh error:', e); showToast('Refresh failed - try again'); }
   finally {
     if (btn) btn.innerHTML = '<i class="ti ti-refresh" style="font-size:14px"></i>';

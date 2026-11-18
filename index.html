@@ -1751,7 +1751,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div class="kpi orange">
             <div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Count of Unbilled Revenue</span></div>
             <div class="kpi-val orange" id="kv-ur-flagged">—</div>
-            <div class="kpi-sub">Unbilled Revenue ≠ 0</div>
+            <div class="kpi-sub" id="kv-ur-rule">Unbilled Revenue ≠ 0</div>
           </div>
         </div>
         <div class="sec-hd">
@@ -1860,7 +1860,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div class="kpi orange">
             <div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Count of Unposted Cost</span></div>
             <div class="kpi-val orange" id="kv-uc-flagged">—</div>
-            <div class="kpi-sub">Unposted Cost ≠ 0</div>
+            <div class="kpi-sub" id="kv-uc-rule">Unposted Cost ≠ 0</div>
           </div>
         </div>
         <div class="sec-hd">
@@ -4077,7 +4077,25 @@ function animateRowsIn(rows, step) {
 // The page on screen (its id without the 'page-' prefix), used by the background reload
 function getActivePage() { const p = document.querySelector('.page.active'); return p ? p.id.replace(/^page-/, '') : 'summary'; }
 
+// Help lines and sidebar tooltips show the cutoff as a real date ("ETD/ETA on or before
+// 14 Nov 2026 (today − 4)") instead of "3+ days" - redrawn with every page, so it moves daily.
+function updateCutoffTexts() {
+  const RULES = [
+    // flagged when ETD/ETA is MORE than 3 / 7 days ago (thresholdDate < today - 3 / - 7)
+    { nav: 'revenue-not-billed', back: 4, tip: 'Revenue not billed within 3 days of SOB - ', sub: 'kv-ur-rule', subText: 'Unbilled Revenue ≠ 0, ' },
+    { nav: 'cost-not-posted',    back: 8, tip: 'Cost not posted within 7 days of SOB - ',    sub: 'kv-uc-rule', subText: 'Unposted Cost ≠ 0, ' },
+  ];
+  RULES.forEach(x => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - x.back);
+    const txt = 'ETD/ETA on or before ' + fmtDate(d) + ' (today − ' + x.back + ')';
+    document.querySelectorAll('.nav-item[onclick*="\'' + x.nav + '\'"]').forEach(el => el.setAttribute('data-tooltip', x.tip + txt + (x.after || '')));
+    const sub = document.getElementById(x.sub); if (sub) sub.textContent = x.subText + txt;
+  });
+}
+setTimeout(updateCutoffTexts, 0);  // after the whole script has run
+
 function renderPage(pageId) {
+  updateCutoffTexts();
   // Every redraw rebuilds the table, so remember which rows were open and
   // reopen them afterwards (view switch, filters, refresh, coming back)
   const openRows = captureOpenRows(pageId);
